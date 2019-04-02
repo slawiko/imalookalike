@@ -59,7 +59,7 @@ int main() {
 
 		// TODO: check descriptor size
 
-		SearchResult searchResult = index.search(descriptor, 1)[0];
+		SearchResult searchResult = index.search(std::move(descriptor), 1)[0];
 
 		// TODO: handle empty result
 

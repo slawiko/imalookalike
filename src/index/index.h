@@ -88,7 +88,7 @@ public:
 
 class Index::Node {
 	std::vector<NodeList> layers;
-	int maxLayer;
+	int maxLayer = -1;
 
 public:
 	std::string name;
@@ -97,7 +97,7 @@ public:
 	Node(std::string name, std::vector<double> descriptor, int maxlayer) :
 		name(std::move(name)), descriptor(std::move(descriptor)), maxLayer(maxLayer), layers(maxLayer + 1) {}
 
-	Node(std::vector<double> descriptor) : Node(std::string(), std::move(descriptor), -1) {}
+	Node(std::vector<double> descriptor) : descriptor(std::move(descriptor)) {}
 
 	int getMaxLayer() {
 		return maxLayer;
