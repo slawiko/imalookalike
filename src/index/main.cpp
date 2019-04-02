@@ -46,7 +46,9 @@ Index loadIndex(std::string fileName) {
 }
 
 int main() {
+	std::cout << "Indexing..." << std::endl
 	Index index = loadIndex("index.data");
+	
 	httplib::Server app;
 
 	app.Get("/health", [](const httplib::Request&, httplib::Response &res) {

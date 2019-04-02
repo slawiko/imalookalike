@@ -94,7 +94,7 @@ public:
 	std::string name;
 	std::vector<double> descriptor;
 
-	Node(std::string name, std::vector<double> descriptor, int maxlayer) :
+	Node(std::string name, std::vector<double> descriptor, int maxLayer) :
 		name(std::move(name)), descriptor(std::move(descriptor)), maxLayer(maxLayer), layers(maxLayer + 1) {}
 
 	Node(std::vector<double> descriptor) : descriptor(std::move(descriptor)) {}
