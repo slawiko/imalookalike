@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <vector>
+#include <string>
 
 #include "index.h"
 #include "httplib.h"
@@ -46,7 +48,7 @@ Index loadIndex(std::string fileName) {
 }
 
 int main() {
-	std::cout << "Indexing..." << std::endl
+	std::cout << "Indexing..." << std::endl;
 	Index index = loadIndex("index.data");
 	
 	httplib::Server app;
