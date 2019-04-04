@@ -4,6 +4,8 @@
 #include <cmath>
 #include <unordered_set>
 #include <algorithm>
+#include <mutex>
+#include <functional>
 
 #include "index.h"
 
@@ -23,8 +25,10 @@ double Euclidean::distance(const std::vector<double> &a, const std::vector<doubl
 	return std::sqrt(ac);
 }
 
-const Index::NodeList& Index::Node::getNeighbourhood(int layer) {
+Index::NodeList Index::Node::getNeighbourhood(int layer) {
 	// TODO: check layer
+
+	std::unique_lock<std::mutex> lock(mutex);
 
 	return layers[layer];
 }
@@ -32,11 +36,15 @@ const Index::NodeList& Index::Node::getNeighbourhood(int layer) {
 void Index::Node::setNeighbourhood(NodeList neighbourhood, int layer) {
 	// TODO: check layer
 
+	std::unique_lock<std::mutex> lock(mutex);
+
 	layers[layer] = std::move(neighbourhood);
 }
 
 void Index::Node::addNeighbour(Node *neighbour, int layer) {
 	// TODO: check layer
+
+	std::unique_lock<std::mutex> lock(mutex);
 
 	layers[layer].push_back(neighbour);
 }
@@ -177,29 +185,33 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 		NodeQueue nearestNodes = searchAtLayer(newNode, entry, efConstruction, layer);
 		entry = nearestNodes.nearest().node;
 
-		NodeList neighbours = selectNeighbours(newNode, std::move(nearestNodes), M, layer);
+		threadPool.enqueu([this](Node *newNode, NodeQueue &nearestNodes, int layer) mutable {
+			NodeList neighbours = selectNeighbours(newNode, std::move(nearestNodes), M, layer);
 
-		for (Node *neighbour : neighbours) {
-			newNode->addNeighbour(neighbour, layer);
-			neighbour->addNeighbour(newNode, layer);
-		}
-
-		int maxM = (layer == 0) ? M0 : M;
-
-		for (Node *neighbour : neighbours) {
-			const NodeList &neighbourhood = neighbour->getNeighbourhood(layer);
-
-			if (neighbourhood.size() > maxM) {
-				NodeQueue sortedNeighbourhood;
-
-				for (Node *node : neighbourhood) {
-					sortedNeighbourhood.push(NodeDistance{ distance(neighbour, node), node });
-				}
-
-				neighbour->setNeighbourhood(selectNeighbours(neighbour, std::move(sortedNeighbourhood), maxM, layer), layer);
+			for (Node *neighbour : neighbours) {
+				newNode->addNeighbour(neighbour, layer);
+				neighbour->addNeighbour(newNode, layer);
 			}
-		}
+
+			int maxM = (layer == 0) ? M0 : M;
+
+			for (Node *neighbour : neighbours) {
+				const NodeList &neighbourhood = neighbour->getNeighbourhood(layer);
+
+				if (neighbourhood.size() > maxM) {
+					NodeQueue sortedNeighbourhood;
+
+					for (Node *node : neighbourhood) {
+						sortedNeighbourhood.push(NodeDistance{ distance(neighbour, node), node });
+					}
+
+					neighbour->setNeighbourhood(selectNeighbours(neighbour, std::move(sortedNeighbourhood), maxM, layer), layer);
+				}
+			}
+		}, newNode, std::move(nearestNodes), layer);
 	}
+
+	threadPool.wait();
 
 	if (nodeLayer > maxLayer) {
 		entryPoint = newNode;
