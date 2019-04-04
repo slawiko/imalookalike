@@ -6,12 +6,12 @@ Application uses [cpp-httplib](https://github.com/yhirose/cpp-httplib) as depend
 ### Building
 On Linux/MacOS (GCC):
 ```
-g++ --std=c++11 -pthread -O2 -x c++ -I<path to httplib> main.cpp index.cpp
+g++ --std=c++11 -pthread -O2 -x c++ -I<path to httplib> main.cpp index.cpp thread_pool.cpp
 ```
 
 On Windows (VS compiler):
 ```
-cl /TP /MT /EHsc /O2 /GL /I<path to httplib> main.cpp index.cpp
+cl /TP /MT /EHsc /O2 /GL /I<path to httplib> main.cpp index.cpp thread_pool.cpp
 ```
 
 ### REST API  
