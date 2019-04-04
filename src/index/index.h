@@ -5,6 +5,9 @@
 #include <vector>
 #include <random>
 #include <cmath>
+#include <mutex>
+
+#include "thread_pool.h"
 
 class Metric {
 public:
@@ -61,6 +64,8 @@ class Index {
 	bool extendCandidates;
 	bool keepPrunedConnections;
 
+	ThreadPool threadPool;
+
 	static double generateRand() {
 		return dist(gen);
 	}
@@ -90,11 +95,13 @@ class Index::Node {
 	std::vector<NodeList> layers;
 	int maxLayer = -1;
 
+	std::mutex mutex;
+
 public:
 	std::string name;
 	std::vector<double> descriptor;
 
-	Node(std::string name, std::vector<double> descriptor, int maxlayer) :
+	Node(std::string name, std::vector<double> descriptor, int maxLayer) :
 		name(std::move(name)), descriptor(std::move(descriptor)), maxLayer(maxLayer), layers(maxLayer + 1) {}
 
 	Node(std::vector<double> descriptor) : descriptor(std::move(descriptor)) {}
@@ -103,7 +110,7 @@ public:
 		return maxLayer;
 	}
 
-	const NodeList& getNeighbourhood(int layer);
+	NodeList getNeighbourhood(int layer);
 	void setNeighbourhood(NodeList neighbourhood, int layer);
 	void addNeighbour(Node *neighbour, int layer);
 };
