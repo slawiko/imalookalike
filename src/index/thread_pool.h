@@ -36,7 +36,7 @@ public:
 		init(other.workers.size());
 	}
 
-	ThreadPool(ThreadPool &&other) {
+	ThreadPool(const ThreadPool &&other) {
 		init(other.workers.size());
 	}
 
@@ -44,15 +44,11 @@ public:
 		init(other.workers.size());
 	}
 
-	template<class Function, class ...Args>
-	void enqueu(Function &&task, Args &&...args) {
-		std::unique_lock<std::mutex> lock(mutex);
-
-		tasks.push(std::bind(std::forward<Function>(task), std::forward<Args>(args)...));
-
-		lock.unlock();
-		taskCV.notify_one();
+	ThreadPool& operator=(const ThreadPool &&other) {
+		init(other.workers.size());
 	}
+
+	void enqueu(std::function<void()> task);
 
 	void wait();
 };

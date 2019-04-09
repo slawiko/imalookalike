@@ -56,10 +56,19 @@ ThreadPool::~ThreadPool() {
 	}
 }
 
+void ThreadPool::enqueu(std::function<void()> task) {
+	std::unique_lock<std::mutex> lock(mutex);
+
+	tasks.push(task);
+
+	lock.unlock();
+	taskCV.notify_one();
+}
+
 void ThreadPool::wait() {
 	std::unique_lock<std::mutex> lock(mutex);
 
-	while (working > 0) {
+	while (tasks.size() > 0 || working > 0) {
 		poolCV.wait(lock);
 	}
 }
