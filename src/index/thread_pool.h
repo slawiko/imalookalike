@@ -10,17 +10,42 @@
 #include <condition_variable>
 
 class ThreadPool {
+	class DoubleLock {
+		std::mutex &mutex1;
+		std::mutex &mutex2;
+
+		bool isLocked = false;
+
+	public:
+
+		DoubleLock(std::mutex &mutex1, std::mutex &mutex2) : mutex1(mutex1), mutex2(mutex2) {
+			lock();
+		};
+
+		~DoubleLock() {
+			unlock();
+		}
+
+		DoubleLock(const DoubleLock&) = delete;
+		DoubleLock& operator=(const DoubleLock&) = delete;
+
+		void lock();
+		void unlock();
+	};
+
 	int defaultThreadCount = 4;
 
 	std::vector<std::thread> workers;
 	std::queue<std::function<void()>> tasks;
 
-	std::mutex mutex;
-	std::condition_variable taskCV;
-	std::condition_variable poolCV;
-
 	bool isRunning = true;
 	int working = 0;
+
+	std::mutex tasksMutex;
+	std::mutex runningMutex;
+	std::mutex workingMutex;
+	std::condition_variable_any taskCV;
+	std::condition_variable_any poolCV;
 
 	void init(int threadCount);
 
@@ -36,15 +61,11 @@ public:
 		init(other.workers.size());
 	}
 
-	ThreadPool(const ThreadPool &&other) {
+	ThreadPool(ThreadPool &&other) {
 		init(other.workers.size());
 	}
 
 	ThreadPool& operator=(const ThreadPool &other) {
-		init(other.workers.size());
-	}
-
-	ThreadPool& operator=(const ThreadPool &&other) {
 		init(other.workers.size());
 	}
 
