@@ -82,6 +82,7 @@ void Index::NodeQueue::pop() {
 }
 
 Index::Index(int descriptorSize, Settings settings) {
+	this->descriptorSize = descriptorSize;
 	this->metric = settings.metric;
 	this->M = settings.M;
 	this->M0 = settings.M0;
