@@ -21,8 +21,8 @@ def check_model_inited():
     return predict_fn and landmarks_model
 
 
-def _predict_embedding(img):
-    predictions = predict_fn({"x": [img]})
+def predict_embeddings(imgs):
+    predictions = predict_fn({"x": imgs})
 
     return predictions['embedding']
 
@@ -38,12 +38,8 @@ def get_embedding(img_path):
     face = faces[0]
     aligned_image = preprocess.preprocess(img, face, landmarks_model)
 
-    embedding = _predict_embedding(aligned_image)
+    embedding = predict_embeddings([aligned_image])
 
     return embedding
 
 
-init_model('C:\\Users\\drovdo\\Documents\\Python\\imalookalike\\src\\net\\prediction\\model',
-           'C:\\Users\\drovdo\\Documents\\Python\\imalookalike\\src\\net\\preprocessing\\landmarks\\shape_predictor_68_face_landmarks.dat')
-
-print(get_embedding('C:\\Users\\drovdo\\Documents\\Python\\celeba-full\\img_celeba\\000002.jpg'))
