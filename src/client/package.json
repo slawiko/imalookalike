@@ -1,0 +1,39 @@
+{
+  "name": "imalookalike",
+  "version": "0.0.1",
+  "description": "Repository for personal site",
+  "main": "index.js",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/slawiko/imalookalike.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/slawiko/imalookalike/issues"
+  },
+  "devDependencies": {
+    "@types/jest": "23.3.13",
+    "@types/node": "10.12.18",
+    "@types/react": "16.7.21",
+    "@types/react-dom": "16.0.11",
+    "tslint": "5.12.1",
+    "typescript": "3.2.4"
+  },
+  "dependencies": {
+    "react": "16.7.0",
+    "react-dom": "16.7.0",
+    "react-scripts": "2.1.8"
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ]
+}

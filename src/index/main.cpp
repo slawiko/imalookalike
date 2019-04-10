@@ -5,10 +5,12 @@
 #include <string>
 
 #include "index.h"
+#include "thread_pool.h"
 #include "httplib.h"
 
-std::vector<double> parseDescriptor(std::istream &in) {
+std::vector<double> parseDescriptor(std::istream &in, int descriptorSize) {
 	std::vector<double> descriptor;
+	descriptor.reserve(descriptorSize);
 	std::string item;
 
 	while (getline(in, item, ',')) {
@@ -16,6 +18,25 @@ std::vector<double> parseDescriptor(std::istream &in) {
 	}
 
 	return descriptor;
+}
+
+void parseAndInsert(std::string line, Index &index, int descriptorSize) {
+	static int counter = 0;
+
+	std::istringstream lineStream(line);
+
+	std::string name;
+	getline(lineStream, name, ',');
+
+	std::vector<double> descriptor = parseDescriptor(lineStream, descriptorSize);
+
+	// TODO: check descriptor size
+
+	index.insert(std::move(name), std::move(descriptor));
+
+	++counter;
+	if (counter % 1000 == 0)
+		std::cout << counter << std::endl;
 }
 
 Index loadIndex(std::string fileName) {
@@ -29,20 +50,19 @@ Index loadIndex(std::string fileName) {
 	int descriptorSize = stoi(line);
 	Index index(descriptorSize);
 
-	while (getline(file, line)) {
-		// TODO: check reading
-
-		std::istringstream lineStream(line);
-
-		std::string name;
-		getline(lineStream, name, ',');
-
-		std::vector<double> descriptor = parseDescriptor(lineStream);
-
-		// TODO: check descriptor size
-
-		index.insert(std::move(name), std::move(descriptor));
+	for (int i = 0; i < 1000 && std::getline(file, line); ++i) {
+		parseAndInsert(line, index, descriptorSize);
 	}
+
+	ThreadPool threadPool;
+
+	while (std::getline(file, line)) {
+		threadPool.enqueu([line, &index, descriptorSize]() {
+			parseAndInsert(line, index, descriptorSize);
+		});
+	}
+
+	threadPool.wait();
 
 	return index;
 }
@@ -59,7 +79,7 @@ int main() {
 
 	app.Post("/neighbour", [&index](const httplib::Request &req, httplib::Response &res) {
 		std::istringstream bodyStream(req.body);
-		std::vector<double> descriptor = parseDescriptor(bodyStream);
+		std::vector<double> descriptor = parseDescriptor(bodyStream, index.getDescriptorSize());
 
 		// TODO: check descriptor size
 

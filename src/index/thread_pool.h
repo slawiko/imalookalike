@@ -10,17 +10,42 @@
 #include <condition_variable>
 
 class ThreadPool {
+	class DoubleLock {
+		std::mutex &mutex1;
+		std::mutex &mutex2;
+
+		bool isLocked = false;
+
+	public:
+
+		DoubleLock(std::mutex &mutex1, std::mutex &mutex2) : mutex1(mutex1), mutex2(mutex2) {
+			lock();
+		};
+
+		~DoubleLock() {
+			unlock();
+		}
+
+		DoubleLock(const DoubleLock&) = delete;
+		DoubleLock& operator=(const DoubleLock&) = delete;
+
+		void lock();
+		void unlock();
+	};
+
 	int defaultThreadCount = 4;
 
 	std::vector<std::thread> workers;
 	std::queue<std::function<void()>> tasks;
 
-	std::mutex mutex;
-	std::condition_variable taskCV;
-	std::condition_variable poolCV;
-
 	bool isRunning = true;
 	int working = 0;
+
+	std::mutex tasksMutex;
+	std::mutex runningMutex;
+	std::mutex workingMutex;
+	std::condition_variable_any taskCV;
+	std::condition_variable_any poolCV;
 
 	void init(int threadCount);
 
@@ -44,15 +69,7 @@ public:
 		init(other.workers.size());
 	}
 
-	template<class Function, class ...Args>
-	void enqueu(Function &&task, Args &&...args) {
-		std::unique_lock<std::mutex> lock(mutex);
-
-		tasks.push(std::bind(std::forward<Function>(task), std::forward<Args>(args)...));
-
-		lock.unlock();
-		taskCV.notify_one();
-	}
+	void enqueu(std::function<void()> task);
 
 	void wait();
 };

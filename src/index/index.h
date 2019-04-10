@@ -3,11 +3,10 @@
 
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include <random>
 #include <cmath>
 #include <mutex>
-
-#include "thread_pool.h"
 
 class Metric {
 public:
@@ -26,8 +25,6 @@ struct Settings {
 	int efConstruction = 100;
 	int efSearch = 10;
 	double mL = 1.0 / std::log(M);
-	bool extendCandidates = false;
-	bool keepPrunedConnections = false;
 
 	void tuneToM() {
 		M0 = 2 * M;
@@ -39,6 +36,9 @@ struct SearchResult {
 	std::string name;
 	std::vector<double> descriptor;
 	double distance;
+
+	SearchResult(std::string name, std::vector<double> descriptor, double distance) :
+		name(std::move(name)), descriptor(std::move(descriptor)), distance(distance) {}
 };
 
 class Index {
@@ -52,6 +52,10 @@ class Index {
 	static std::uniform_real_distribution<double> dist;
 
 	Node *entryPoint = nullptr;
+	int size = 0;
+
+	std::mutex entryMutex;
+	std::mutex sizeMutex;
 
 	int descriptorSize;
 
@@ -64,28 +68,46 @@ class Index {
 	bool extendCandidates;
 	bool keepPrunedConnections;
 
-	ThreadPool threadPool;
-
 	static double generateRand() {
 		return dist(gen);
 	}
 
+	void copy(Index &&other);
+
 	double distance(Node *a, Node *b);
 
-	NodeQueue searchAtLayer(Node *target, Node *entry, int count, int layer);
-	NodeList selectNeighbours(Node *target, NodeQueue candidates, int count, int layer);
+	Node* getEntryPoint();
+	void setEntryPoint(Node *newEntryPoint);
+
+	int getSize();
+	void increaseSize();
+
+	Node* createNode(std::string name, std::vector<double> descriptor, int layer);
+	Node* createNode(std::vector<double> descriptor);
+
+	void searchAtLayer(Node *target, Node *entry, int count, int layer,
+		NodeQueue &candidates, std::unordered_set<Node*> &visited, NodeQueue &result);
+
+	void selectNeighbours(Node *target, int count, int layer,
+		NodeQueue &candidates, NodeList &result);
 
 public:
-	Index(int descriptorSize, Settings settings = Settings()) {
-		this->metric = settings.metric;
-		this->M = settings.M;
-		this->M0 = settings.M0;
-		this->efConstruction = std::max(settings.efConstruction, M);
-		this->efSearch = settings.efSearch;
-		this->mL = settings.mL;
-		this->extendCandidates = settings.extendCandidates;
-		this->keepPrunedConnections = settings.keepPrunedConnections;
-	};
+	Index(int descriptorSize, Settings settings = Settings());
+
+	Index(const Index&) = delete;
+	Index& operator=(Index&) = delete;
+
+	Index(Index &&other) {
+		copy(std::move(other));
+	}
+
+	Index& operator=(Index &&other) {
+		copy(std::move(other));
+	}
+
+	int getDescriptorSize() {
+		return descriptorSize;
+	}
 
 	void insert(std::string name, std::vector<double> descriptor);
 	std::vector<SearchResult> search(std::vector<double> descriptor, int k);
@@ -101,10 +123,7 @@ public:
 	std::string name;
 	std::vector<double> descriptor;
 
-	Node(std::string name, std::vector<double> descriptor, int maxLayer) :
-		name(std::move(name)), descriptor(std::move(descriptor)), maxLayer(maxLayer), layers(maxLayer + 1) {}
-
-	Node(std::vector<double> descriptor) : descriptor(std::move(descriptor)) {}
+	Node(std::string name, std::vector<double> descriptor, int layersCount, int neighboursCount, int neighboursCount0);
 
 	int getMaxLayer() {
 		return maxLayer;
@@ -113,11 +132,14 @@ public:
 	NodeList getNeighbourhood(int layer);
 	void setNeighbourhood(NodeList neighbourhood, int layer);
 	void addNeighbour(Node *neighbour, int layer);
+	int getNeighbourhoodSize(int layer);
 };
 
 struct Index::NodeDistance {
 	double distance;
 	Node *node;
+
+	NodeDistance(double distance, Node *node) : distance(distance), node(node) {}
 };
 
 class Index::NodeQueue {
@@ -132,6 +154,7 @@ class Index::NodeQueue {
 
 public:
 	void push(NodeDistance item);
+	void emplace(double distance, Node *node);
 	void pop();
 
 	const NodeDistance& nearest() {
@@ -144,6 +167,10 @@ public:
 
 	int size() {
 		return static_cast<int>(container.size());
+	}
+
+	int capacity() {
+		return container.capacity();
 	}
 
 	bool empty() {
@@ -160,6 +187,14 @@ public:
 
 	std::vector<NodeDistance>::const_iterator end() const {
 		return container.cend();
+	}
+
+	void reserve(int size) {
+		container.reserve(size);
+	}
+
+	void clear() {
+		container.clear();
 	}
 };
 
