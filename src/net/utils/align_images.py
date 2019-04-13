@@ -3,6 +3,7 @@ import csv
 import sys
 import numpy as np
 import src.net.preprocessing.preprocess as p
+import concurrent.futures
 
 LANDMARKS_MODEL_PATH = 'landmarks\\shape_predictor_68_face_landmarks.dat'
 
@@ -55,15 +56,16 @@ def get_mean_landmarks(landmarks):
     return mean_lm
 
 
-def process_images(input_folder, output_folder, landmark_file):
+def process_images(input_folder, output_folder, landmark_file, num_workers=5):
     landmarks_metadata = get_landmarks_metadata(landmark_file)
     ids = [row[0] for row in landmarks_metadata]
     landmarks = np.reshape(np.array(landmarks_metadata[:, 1:], dtype=int),
                            (len(landmarks_metadata), (len(landmarks_metadata[0]) - 1) // 2, -1))
     mean_landmarks = get_mean_landmarks(landmarks)
 
-    for img_id, landmark in zip(ids, landmarks):
-        process_image(input_folder, output_folder, img_id, landmark, mean_landmarks)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+        for img_id, landmark in zip(ids, landmarks):
+            executor.submit(process_image, input_folder, output_folder, img_id, landmark, mean_landmarks)
 
 
 if __name__ == "__main__":
