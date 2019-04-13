@@ -14,7 +14,7 @@ USER ${APPUSER}
 WORKDIR /app
 
 # docker layers caching usage
-COPY ./requirements.txt ./
+COPY server/requirements.txt ./
 RUN pip install --user -r ./requirements.txt --no-cache-dir
 
 COPY ./ ./
