@@ -7,7 +7,5 @@ class InvalidImage(Exception):
         self.status_code = status_code
 
     def to_response(self):
-        response = flask.Response()
-        response.status_code = self.status_code
-        response.status = self.message
+        return flask.make_response(self.message, self.status_code)
 
