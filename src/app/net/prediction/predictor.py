@@ -1,6 +1,7 @@
-import src.net.preprocessing.preprocess as preprocess
+import src.app.net.preprocessing.preprocess as preprocess
 from tensorflow.contrib import predictor
 import cv2
+import numpy as np
 
 _MODEL_DIR = 'model'
 _LANDMARKS_MODEL_PATH = 'landmarks\\shape_predictor_68_face_landmarks.dat'
@@ -27,11 +28,17 @@ def predict_embeddings(imgs):
     return predictions['embedding']
 
 
-def get_embedding(img_path):
+def get_embedding(image):
     if not check_model_inited():
         raise RuntimeError("Model is not inited")
 
-    img = cv2.imread(img_path)
+    if type(image) is str:
+        img = cv2.imread(image)
+    elif type(image) is bytes:
+        img = cv2.imdecode(np.fromstring(image, np.uint8), flags=cv2.IMREAD_COLOR)
+    else:
+        raise TypeError('Argument must have type str or bytes')
+
     faces = preprocess.get_faces(img)
     if len(faces) != 1:
         raise RuntimeError
