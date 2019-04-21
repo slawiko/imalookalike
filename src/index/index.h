@@ -25,6 +25,7 @@ struct Settings {
 	int efConstruction = 100;
 	int efSearch = 10;
 	double mL = 1.0 / std::log(M);
+	bool keepPrunedConnections = true;
 
 	void tuneToM() {
 		M0 = 2 * M;
@@ -66,7 +67,6 @@ class Index {
 	int efConstruction;
 	int efSearch;
 	double mL;
-	bool extendCandidates;
 	bool keepPrunedConnections;
 
 	static double generateRand() {
@@ -89,7 +89,7 @@ class Index {
 		NodeQueue &candidates, bool *visited, int candidatesCount, NodeQueue &result);
 
 	void selectNeighbours(const NodePtr &target, int count, int layer,
-		NodeQueue &candidates, NodeList &result);
+		NodeQueue &candidates, NodeList &discarded, NodeList &result);
 
 public:
 	Index(int descriptorSize, Settings settings = Settings());

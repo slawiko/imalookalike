@@ -91,6 +91,7 @@ Index::Index(int descriptorSize, Settings settings) {
 	this->efConstruction = std::max(settings.efConstruction, M);
 	this->efSearch = settings.efSearch;
 	this->mL = settings.mL;
+	this->keepPrunedConnections = settings.keepPrunedConnections;
 };
 
 void Index::copy(Index &&other) {
@@ -181,7 +182,7 @@ void Index::searchAtLayer(
 
 void Index::selectNeighbours(
 	const NodePtr &target, int count, int layer,
-	NodeQueue &candidates, NodeList &result
+	NodeQueue &candidates, NodeList &discarded, NodeList &result
 ) {
 	while (candidates.size() > 0 && result.size() < count) {
 		NodeDistance candidate = candidates.nearest();
@@ -198,6 +199,14 @@ void Index::selectNeighbours(
 
 		if (isCloser) {
 			result.push_back(candidate.node);
+		} else {
+			discarded.push_back(candidate.node);
+		}
+	}
+
+	if (keepPrunedConnections) {
+		for (int i = 0; result.size() < count && i < discarded.size(); ++i) {
+			result.push_back(discarded[i]);
 		}
 	}
 }
@@ -219,6 +228,9 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 
 	NodeQueue candidates;
 	candidates.reserve(candidatesCount);
+
+	NodeList discarded;
+	discarded.reserve(candidatesCount);
 
 	bool *visited = new bool[candidatesCount];
 	memset(visited, false, candidatesCount);
@@ -247,7 +259,8 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 		searchAtLayer(newNode, entry, efConstruction, layer, candidates, visited, candidatesCount, nearestNodes);
 		entry = nearestNodes.nearest().node;
 
-		selectNeighbours(newNode, M, layer, nearestNodes, neighbours);
+		selectNeighbours(newNode, M, layer, nearestNodes, discarded, neighbours);
+		discarded.clear();
 
 		for (NodePtr neighbour : neighbours) {
 			newNode->addNeighbour(neighbour, layer);
@@ -269,11 +282,12 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 					sortedNeighbours.emplace(distance(neighbour, node), node);
 				}
 
-				selectNeighbours(neighbour, maxM, layer, sortedNeighbours, newNeighbours);
+				selectNeighbours(neighbour, maxM, layer, sortedNeighbours, discarded, newNeighbours);
 				neighbour->setNeighbourhood(newNeighbours, layer);
 
-				newNeighbours.clear();
 				sortedNeighbours.clear();
+				discarded.clear();
+				newNeighbours.clear();
 			}
 		}
 
