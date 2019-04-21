@@ -1,42 +1,42 @@
 import * as React from 'react';
-
+import { FileUpload } from '../file-upload/FileUpload';
 import './Main.css';
 
-export class Main extends React.Component<{}> {
+interface State {
+  // lookalikeFile: Blob | null;
+  lookalikeFile: any;
+}
+
+export class Main extends React.Component<{}, State> {
   constructor(props: {}) {
     super(props);
-    this.handleFileUpload = this.handleFileUpload.bind(this);
+    this.state = {
+      lookalikeFile: null,
+    };
+    this.showLookalike = this.showLookalike.bind(this);
   }
 
-  public render() {
+  render() {
     return (
       <div className="main">
-        <input type="file" onChange={this.handleFileUpload} />
+        <h2>What celebrity is your lookalike?</h2>
+        <div className="pane left">
+          <FileUpload onResponseReceived={this.showLookalike}
+                      onError={this.showError}/>
+        </div>
+        >
+        <div className="pane right">
+          <span>{this.state.lookalikeFile}</span>
+        </div>
       </div>
     );
   }
 
-  public handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
-    const formData = new FormData();
-    if (!event.target.files) {
-      return;
-    }
+  private showLookalike(lookalikeFile: Blob) {
+    this.setState({ lookalikeFile: lookalikeFile.toString() });
+  }
 
-    const reader = new FileReader();
-
-    reader.readAsArrayBuffer(event.target.files[0]);
-
-    reader.addEventListener('loadend', e => {
-      fetch('/upload', {
-        method: 'POST',
-        body: reader.result,
-        headers: {
-          'Content-type': 'image/jpeg'
-        }
-      })
-      .then(res => {
-        console.log(res);
-      });
-    });
+  private showError(data: any) {
+    this.setState({ lookalikeFile: `error: ${data}` });
   }
 }
