@@ -28,7 +28,7 @@ double Euclidean::distance(const std::vector<double> &a, const std::vector<doubl
 }
 
 Index::Node::Node(int id, std::string name, std::vector<double> descriptor, int layersCount, int neighboursCount, int neighboursCount0) :
-id(id), name(std::move(name)), descriptor(std::move(descriptor)), maxLayer(layersCount - 1), layers(layersCount) {
+id(id), name(std::move(name)), descriptor(std::move(descriptor)), maxLayer(layersCount - 1), layers(layersCount), layersMutexes(layersCount) {
 	if (layersCount > 0) {
 		layers[0].reserve(neighboursCount0);
 
@@ -41,7 +41,7 @@ id(id), name(std::move(name)), descriptor(std::move(descriptor)), maxLayer(layer
 Index::NodeList Index::Node::getNeighbourhood(int layer) {
 	// TODO: check layer
 
-	std::unique_lock<std::mutex> lock(mutex);
+	std::unique_lock<std::mutex> lock(layersMutexes[layer]);
 
 	return layers[layer];
 }
@@ -49,7 +49,7 @@ Index::NodeList Index::Node::getNeighbourhood(int layer) {
 void Index::Node::setNeighbourhood(NodeList neighbourhood, int layer) {
 	// TODO: check layer
 
-	std::unique_lock<std::mutex> lock(mutex);
+	std::unique_lock<std::mutex> lock(layersMutexes[layer]);
 
 	layers[layer] = std::move(neighbourhood);
 }
@@ -57,13 +57,13 @@ void Index::Node::setNeighbourhood(NodeList neighbourhood, int layer) {
 void Index::Node::addNeighbour(const NodePtr &neighbour, int layer) {
 	// TODO: check layer
 
-	std::unique_lock<std::mutex> lock(mutex);
+	std::unique_lock<std::mutex> lock(layersMutexes[layer]);
 
 	layers[layer].push_back(neighbour);
 }
 
 int Index::Node::getNeighbourhoodSize(int layer) {
-	std::unique_lock<std::mutex> lock(mutex);
+	std::unique_lock<std::mutex> lock(layersMutexes[layer]);
 
 	return layers[layer].size();
 }

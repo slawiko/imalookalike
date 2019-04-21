@@ -115,7 +115,7 @@ public:
 };
 
 class Index::Node {
-	std::mutex mutex;
+	std::vector<std::mutex> layersMutexes;
 
 public:
 	std::vector<NodeList> layers;
