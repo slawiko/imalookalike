@@ -3,6 +3,7 @@ import flask
 
 class InvalidImage(Exception):
     def __init__(self, message='Invalid image data', status_code=415):
+        super(InvalidImage, self)
         self.message = message
         self.status_code = status_code
 
