@@ -6,6 +6,7 @@
 #include <random>
 #include <cmath>
 #include <mutex>
+#include <memory>
 
 class Metric {
 public:
@@ -45,12 +46,13 @@ class Index {
 	struct NodeDistance;
 	class NodeQueue;
 
-	using NodeList = std::vector<Node*>;
+	using NodePtr = std::shared_ptr<Node>;
+	using NodeList = std::vector<NodePtr>;
 
 	static std::mt19937 gen;
 	static std::uniform_real_distribution<double> dist;
 
-	Node *entryPoint = nullptr;
+	NodePtr entryPoint = NodePtr(nullptr);
 	int maxId = -1;
 
 	std::mutex entryMutex;
@@ -73,20 +75,20 @@ class Index {
 
 	void copy(Index &&other);
 
-	double distance(Node *a, Node *b);
+	double distance(const NodePtr &a, const NodePtr &b);
 
-	Node* getEntryPoint();
-	void setEntryPoint(Node *newEntryPoint);
+	NodePtr getEntryPoint();
+	void setEntryPoint(const NodePtr &newEntryPoint);
 
 	int getSize();
 	int generateId();
 
-	Node* createNode(std::string name, std::vector<double> descriptor, int layer);
+	NodePtr createNode(std::string name, std::vector<double> descriptor, int layer);
 
-	void searchAtLayer(Node *target, Node *entry, int searchCount, int layer,
+	void searchAtLayer(const NodePtr &target, const NodePtr &entry, int searchCount, int layer,
 		NodeQueue &candidates, bool *visited, int candidatesCount, NodeQueue &result);
 
-	void selectNeighbours(Node *target, int count, int layer,
+	void selectNeighbours(const NodePtr &target, int count, int layer,
 		NodeQueue &candidates, NodeList &result);
 
 public:
@@ -127,15 +129,15 @@ public:
 
 	NodeList getNeighbourhood(int layer);
 	void setNeighbourhood(NodeList neighbourhood, int layer);
-	void addNeighbour(Node *neighbour, int layer);
+	void addNeighbour(const NodePtr &neighbour, int layer);
 	int getNeighbourhoodSize(int layer);
 };
 
 struct Index::NodeDistance {
 	double distance;
-	Node *node;
+	NodePtr node;
 
-	NodeDistance(double distance, Node *node) : distance(distance), node(node) {}
+	NodeDistance(double distance, const NodePtr &node) : distance(distance), node(node) {}
 };
 
 class Index::NodeQueue {
@@ -150,7 +152,7 @@ class Index::NodeQueue {
 
 public:
 	void push(NodeDistance item);
-	void emplace(double distance, Node *node);
+	void emplace(double distance, const NodePtr &node);
 	void pop();
 
 	const NodeDistance& nearest() {

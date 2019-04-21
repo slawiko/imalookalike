@@ -7,6 +7,7 @@
 #include <mutex>
 #include <functional>
 #include <cstring>
+#include <memory>
 
 #include "index.h"
 
@@ -53,7 +54,7 @@ void Index::Node::setNeighbourhood(NodeList neighbourhood, int layer) {
 	layers[layer] = std::move(neighbourhood);
 }
 
-void Index::Node::addNeighbour(Node *neighbour, int layer) {
+void Index::Node::addNeighbour(const NodePtr &neighbour, int layer) {
 	// TODO: check layer
 
 	std::unique_lock<std::mutex> lock(mutex);
@@ -72,7 +73,7 @@ void Index::NodeQueue::push(NodeDistance item) {
 	push_heap(container.begin(), container.end(), DistanceComparator());
 }
 
-void Index::NodeQueue::emplace(double distance, Node *node) {
+void Index::NodeQueue::emplace(double distance, const NodePtr &node) {
 	container.emplace_back(distance, node);
 	push_heap(container.begin(), container.end(), DistanceComparator());
 }
@@ -103,13 +104,13 @@ void Index::copy(Index &&other) {
 	mL = other.mL;
 }
 
-Index::Node* Index::getEntryPoint() {
+Index::NodePtr Index::getEntryPoint() {
 	std::unique_lock<std::mutex> lock(entryMutex);
 
 	return entryPoint;
 }
 
-void Index::setEntryPoint(Node *newEntryPoint) {
+void Index::setEntryPoint(const NodePtr &newEntryPoint) {
 	std::unique_lock<std::mutex> lock(entryMutex);
 
 	if (entryPoint && entryPoint->maxLayer >= newEntryPoint->maxLayer) {
@@ -131,16 +132,16 @@ int Index::generateId() {
 	return ++maxId;
 }
 
-Index::Node* Index::createNode(std::string name, std::vector<double> descriptor, int layer) {
-	return new Node(generateId(), std::move(name), std::move(descriptor), layer + 1, M + 1, M0 + 1);
+Index::NodePtr Index::createNode(std::string name, std::vector<double> descriptor, int layer) {
+	return std::make_shared<Node>(generateId(), std::move(name), std::move(descriptor), layer + 1, M + 1, M0 + 1);
 }
 
-double Index::distance(Node *a, Node *b) {
+double Index::distance(const NodePtr &a, const NodePtr &b) {
 	return metric->distance(a->descriptor, b->descriptor);
 }
 
 void Index::searchAtLayer(
-	Node *target, Node *entry, int searchCount, int layer,
+	const NodePtr &target, const NodePtr &entry, int searchCount, int layer,
 	NodeQueue &candidates, bool *visited, int candidatesCount, NodeQueue &result
 ) {
 	double entryDistance = distance(target, entry);
@@ -158,7 +159,7 @@ void Index::searchAtLayer(
 		NodeList neighbourhood = candidate.node->getNeighbourhood(layer);
 		candidates.pop();
 
-		for (Node *neighbour : neighbourhood) {
+		for (NodePtr neighbour : neighbourhood) {
 			if (neighbour->id >= candidatesCount || visited[neighbour->id]) {
 				continue;
 			}
@@ -179,7 +180,7 @@ void Index::searchAtLayer(
 }
 
 void Index::selectNeighbours(
-	Index::Node *target, int count, int layer,
+	const NodePtr &target, int count, int layer,
 	NodeQueue &candidates, NodeList &result
 ) {
 	while (candidates.size() > 0 && result.size() < count) {
@@ -188,7 +189,7 @@ void Index::selectNeighbours(
 
 		bool isCloser = true;
 
-		for (Node *resultNode : result) {
+		for (NodePtr resultNode : result) {
 			if (distance(resultNode, candidate.node) < candidate.distance) {
 				isCloser = false;
 				break;
@@ -205,9 +206,9 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 	// TODO: check descriptor size
 
 	int nodeLayer = static_cast<int>(-std::log(Index::generateRand()) * mL);
-	Node *newNode = createNode(std::move(name), std::move(descriptor), nodeLayer);
+	NodePtr newNode = createNode(std::move(name), std::move(descriptor), nodeLayer);
 
-	Node *entry = getEntryPoint();
+	NodePtr entry = getEntryPoint();
 
 	if (!entry) {
 		setEntryPoint(newNode);
@@ -248,14 +249,14 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 
 		selectNeighbours(newNode, M, layer, nearestNodes, neighbours);
 
-		for (Node *neighbour : neighbours) {
+		for (NodePtr neighbour : neighbours) {
 			newNode->addNeighbour(neighbour, layer);
 			neighbour->addNeighbour(newNode, layer);
 		}
 
 		int maxM = (layer == 0) ? M0 : M;
 
-		for (Node *neighbour : neighbours) {
+		for (NodePtr neighbour : neighbours) {
 			if (neighbour->getNeighbourhoodSize(layer) > maxM) {
 				NodeList neighbourhood = neighbour->getNeighbourhood(layer);
 
@@ -264,7 +265,7 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 					sortedNeighbours.reserve(M0 + 1);
 				}
 
-				for (Node *node : neighbourhood) {
+				for (NodePtr node : neighbourhood) {
 					sortedNeighbours.emplace(distance(neighbour, node), node);
 				}
 
@@ -294,7 +295,7 @@ std::vector<SearchResult> Index::search(std::vector<double> descriptor, int k) {
 
 	// TODO: check descriptor size
 
-	Node *node = new Node(std::move(descriptor));
+	NodePtr node = std::make_shared<Node>(std::move(descriptor));
 
 	int searchCount = std::max(efSearch, k);
 	int candidatesCount = getSize();
@@ -308,7 +309,7 @@ std::vector<SearchResult> Index::search(std::vector<double> descriptor, int k) {
 	bool *visited = new bool[candidatesCount];
 	memset(visited, false, candidatesCount);
 
-	Node *entry = getEntryPoint();
+	NodePtr entry = getEntryPoint();
 	int maxLayer = entry->maxLayer;
 
 	for (int layer = maxLayer; layer > 0; --layer) {
@@ -341,7 +342,7 @@ void Index::save() {
 	NodeList nodes;
 	nodes.reserve(getSize());
 
-	std::queue<Node*> candidates;
+	std::queue<NodePtr> candidates;
 	candidates.push(entryPoint);
 
 	std::vector<bool> visited(10000, false);
@@ -352,14 +353,14 @@ void Index::save() {
 	while (!candidates.empty()) {
 		counter++;
 
-		Node *candidate = candidates.front();
+		NodePtr candidate = candidates.front();
 		candidates.pop();
 
 		nodes.push_back(candidate);
 
 		NodeList &neighbours = candidate->layers[0];
 
-		for (Node *neighbour : neighbours) {
+		for (NodePtr neighbour : neighbours) {
 			if (!visited[neighbour->id]) {
 				candidates.push(neighbour);
 				visited[neighbour->id] = true;
