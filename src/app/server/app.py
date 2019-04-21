@@ -1,6 +1,6 @@
 from flask import Flask, render_template, send_from_directory, request
-from src.app.errors import InvalidImage
-from src.app.net.main import process_image
+from src.app.server.errors import InvalidImage
+from src.app.server.net.main import process_image
 import imghdr
 
 app = Flask(__name__, static_folder='../client/build', template_folder='../client/build')

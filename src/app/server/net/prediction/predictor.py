@@ -1,4 +1,4 @@
-import src.app.net.preprocessing.preprocess as preprocess
+import src.app.server.net.preprocessing.preprocess as preprocess
 from tensorflow.contrib import predictor
 import cv2
 import numpy as np
