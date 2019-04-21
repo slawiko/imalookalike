@@ -3,7 +3,6 @@
 
 #include <string>
 #include <vector>
-#include <unordered_set>
 #include <random>
 #include <cmath>
 #include <mutex>
@@ -52,10 +51,10 @@ class Index {
 	static std::uniform_real_distribution<double> dist;
 
 	Node *entryPoint = nullptr;
-	int size = 0;
+	int maxId = -1;
 
 	std::mutex entryMutex;
-	std::mutex sizeMutex;
+	std::mutex idMutex;
 
 	int descriptorSize;
 
@@ -80,13 +79,12 @@ class Index {
 	void setEntryPoint(Node *newEntryPoint);
 
 	int getSize();
-	void increaseSize();
+	int generateId();
 
 	Node* createNode(std::string name, std::vector<double> descriptor, int layer);
-	Node* createNode(std::vector<double> descriptor);
 
-	void searchAtLayer(Node *target, Node *entry, int count, int layer,
-		NodeQueue &candidates, std::unordered_set<Node*> &visited, NodeQueue &result);
+	void searchAtLayer(Node *target, Node *entry, int searchCount, int layer,
+		NodeQueue &candidates, bool *visited, int candidatesCount, NodeQueue &result);
 
 	void selectNeighbours(Node *target, int count, int layer,
 		NodeQueue &candidates, NodeList &result);
@@ -111,23 +109,21 @@ public:
 
 	void insert(std::string name, std::vector<double> descriptor);
 	std::vector<SearchResult> search(std::vector<double> descriptor, int k);
+	void save();
 };
 
 class Index::Node {
-	std::vector<NodeList> layers;
-	int maxLayer = -1;
-
 	std::mutex mutex;
 
 public:
+	std::vector<NodeList> layers;
+	int maxLayer = -1;
+	int id = -1;
 	std::string name;
 	std::vector<double> descriptor;
 
-	Node(std::string name, std::vector<double> descriptor, int layersCount, int neighboursCount, int neighboursCount0);
-
-	int getMaxLayer() {
-		return maxLayer;
-	}
+	Node(int id, std::string name, std::vector<double> descriptor, int layersCount, int neighboursCount, int neighboursCount0);
+	Node(std::vector<double> descriptor) : descriptor(std::move(descriptor)) {}
 
 	NodeList getNeighbourhood(int layer);
 	void setNeighbourhood(NodeList neighbourhood, int layer);
