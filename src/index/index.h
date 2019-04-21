@@ -94,6 +94,10 @@ class Index {
 public:
 	Index(int descriptorSize, Settings settings = Settings());
 
+	Index(std::string dumpName, Metric *metric = new Euclidean()) {
+		load(dumpName, metric);
+	}
+
 	Index(const Index&) = delete;
 	Index& operator=(Index&) = delete;
 
@@ -111,7 +115,9 @@ public:
 
 	void insert(std::string name, std::vector<double> descriptor);
 	std::vector<SearchResult> search(std::vector<double> descriptor, int k);
-	void save();
+
+	void save(std::string filename = "index.dump");
+	void load(std::string filename = "index.dump", Metric *metric = new Euclidean());
 };
 
 class Index::Node {

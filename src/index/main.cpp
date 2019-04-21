@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 
+#include <chrono>
+
 #include "index.h"
 #include "thread_pool.h"
 #include "httplib.h"
@@ -39,8 +41,18 @@ void parseAndInsert(std::string line, Index &index, int descriptorSize) {
 		std::cout << counter << std::endl;
 }
 
-Index loadIndex(std::string fileName) {
+Index buildIndex(std::string fileName) {
 	// TODO: check file existence
+
+	std::ifstream dump("index.dump");
+
+	if (dump.good()) {
+		std::cout << "Reading dump..." << std::endl;
+
+		return Index("index.dump");
+	}
+
+	std::cout << "Indexing..." << std::endl;
 
 	std::ifstream file(fileName);
 	std::string line;
@@ -64,12 +76,13 @@ Index loadIndex(std::string fileName) {
 
 	threadPool.wait();
 
+	index.save();
+
 	return index;
 }
 
 int main() {
-	std::cout << "Indexing..." << std::endl;
-	Index index = loadIndex("index.data");
+	Index index = buildIndex("index.data");
 	
 	httplib::Server app;
 

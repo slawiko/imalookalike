@@ -8,6 +8,8 @@
 #include <functional>
 #include <cstring>
 #include <memory>
+#include <fstream>
+#include <sstream>
 
 #include "index.h"
 
@@ -349,46 +351,150 @@ std::vector<SearchResult> Index::search(std::vector<double> descriptor, int k) {
 	return result;
 }
 
-#include <iostream>
-#include <queue>
+void Index::save(std::string filename) {
+	std::ofstream file(filename);
 
-void Index::save() {
 	NodeList nodes;
-	nodes.reserve(getSize());
+	nodes.reserve(maxId + 1);
 
-	std::queue<NodePtr> candidates;
-	candidates.push(entryPoint);
+	NodeList candidates;
+	candidates.reserve(maxId + 1);
+	candidates.push_back(entryPoint);
 
-	std::vector<bool> visited(10000, false);
+	std::vector<bool> visited(maxId + 1, false);
 	visited[entryPoint->id] = true;
 
-	int counter = 0;
-
 	while (!candidates.empty()) {
-		counter++;
-
-		NodePtr candidate = candidates.front();
-		candidates.pop();
+		NodePtr candidate = candidates.back();
+		candidates.pop_back();
 
 		nodes.push_back(candidate);
 
 		NodeList &neighbours = candidate->layers[0];
 
-		for (NodePtr neighbour : neighbours) {
+		for (const NodePtr &neighbour : neighbours) {
 			if (!visited[neighbour->id]) {
-				candidates.push(neighbour);
+				candidates.push_back(neighbour);
 				visited[neighbour->id] = true;
 			}
 		}
 	}
 
-	std::vector<int> ids;
+	file << nodes.size() << "," << entryPoint->id << "," << maxId << "," << descriptorSize << ","
+		<< M << "," << M0 << "," << efConstruction << "," << efSearch << "," << mL << "," << keepPrunedConnections << "\n";
 
-	for (int i = 1; i < 10000 && i < visited.size(); ++i) {
-		if (!visited[i]) {
-			ids.push_back(i);
+	for (const NodePtr &node : nodes) {
+		file << node->id << "," << node->name;
+
+		for (double item : node->descriptor) {
+			file << "," << item;
+		}
+
+		file << "," << node->maxLayer + 1 << "\n";
+	}
+
+	for (const NodePtr &node : nodes) {
+		int layersCount = node->maxLayer + 1;
+
+		for (int layer = 0; layer < layersCount; ++layer) {
+			NodeList &neighbours = node->layers[layer];
+
+			file << node->id << "," << layer << "," << neighbours.size();
+
+			for (const NodePtr &neighbour : neighbours) {
+				file << "," << neighbour->id;
+			}
+
+			file << "\n";
 		}
 	}
 
-	std::cout << "Lost: " << ids.size() << std::endl;
+	file.close();
+}
+
+void Index::load(std::string filename, Metric *metric) {
+	std::ifstream file(filename);
+
+	std::string line;
+	std::string item;
+	std::istringstream lineStream;
+
+	getline(file, line);
+	lineStream.str(line);
+
+	getline(lineStream, item, ',');
+	int size = std::stoi(item);
+
+	getline(lineStream, item, ',');
+	int entryPointId = std::stoi(item);
+
+	getline(lineStream, item, ',');
+	maxId = std::stoi(item);
+
+	getline(lineStream, item, ',');
+	descriptorSize = std::stoi(item);
+
+	getline(lineStream, item, ',');
+	M = std::stoi(item);
+
+	getline(lineStream, item, ',');
+	M0 = std::stoi(item);
+
+	getline(lineStream, item, ',');
+	efConstruction = std::stoi(item);
+
+	getline(lineStream, item, ',');
+	efSearch = std::stoi(item);
+
+	this->metric = metric;
+
+	NodeList nodes(size);
+
+	for (int i = 0; i < size; ++i) {
+		getline(file, line);
+		lineStream.str(line);
+		lineStream.clear();
+
+		getline(lineStream, item, ',');
+		int id = std::stoi(item);
+
+		std::string name;
+		getline(lineStream, name, ',');
+
+		std::vector<double> descriptor;
+		descriptor.reserve(descriptorSize);
+
+		for (int j = 0; j < descriptorSize; ++j) {
+			getline(lineStream, item, ',');
+			descriptor.push_back(std::stod(item));
+		}
+
+		getline(lineStream, item, ',');
+		int layersCount = std::stoi(item);
+
+		nodes[id] = std::make_shared<Node>(id, std::move(name), std::move(descriptor), layersCount, M + 1, M0 + 1);
+	}
+
+	entryPoint = nodes[entryPointId];
+
+	while (getline(file, line)) {
+		lineStream.str(line);
+		lineStream.clear();
+
+		getline(lineStream, item, ',');
+		int nodeId = std::stoi(item);
+
+		getline(lineStream, item, ',');
+		int layer = std::stoi(item);
+
+		getline(lineStream, item, ',');
+		int neighboursCount = std::stoi(item);
+
+		for (int i = 0; i < neighboursCount; ++i) {
+			getline(lineStream, item, ',');
+			nodes[nodeId]->layers[layer].push_back(nodes[std::stoi(item)]);
+		}
+	}
+
+	file.close();
 }
