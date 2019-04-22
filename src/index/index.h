@@ -122,10 +122,9 @@ public:
 };
 
 class Index::Node {
-	std::vector<std::mutex> layersMutexes;
-
 public:
 	std::vector<NodeList> layers;
+	std::vector<std::mutex> layersMutexes;
 	int maxLayer = -1;
 	int id = -1;
 	std::string name;
@@ -134,10 +133,7 @@ public:
 	Node(int id, std::string name, std::vector<double> descriptor, int layersCount, int neighboursCount, int neighboursCount0);
 	Node(std::vector<double> descriptor) : descriptor(std::move(descriptor)) {}
 
-	NodeList getNeighbourhood(int layer);
-	void setNeighbourhood(NodeList neighbourhood, int layer);
 	void addNeighbour(const NodePtr &neighbour, int layer);
-	int getNeighbourhoodSize(int layer);
 };
 
 struct Index::NodeDistance {

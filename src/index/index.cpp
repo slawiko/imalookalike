@@ -38,24 +38,9 @@ id(id), name(std::move(name)), descriptor(std::move(descriptor)), maxLayer(layer
 	}
 }
 
-Index::NodeList Index::Node::getNeighbourhood(int layer) {
-	std::unique_lock<std::mutex> lock(layersMutexes[layer]);
-	return layers[layer];
-}
-
-void Index::Node::setNeighbourhood(NodeList neighbourhood, int layer) {
-	std::unique_lock<std::mutex> lock(layersMutexes[layer]);
-	layers[layer] = std::move(neighbourhood);
-}
-
 void Index::Node::addNeighbour(const NodePtr &neighbour, int layer) {
 	std::unique_lock<std::mutex> lock(layersMutexes[layer]);
 	layers[layer].push_back(neighbour);
-}
-
-int Index::Node::getNeighbourhoodSize(int layer) {
-	std::unique_lock<std::mutex> lock(layersMutexes[layer]);
-	return layers[layer].size();
 }
 
 void Index::NodeQueue::push(NodeDistance item) {
@@ -139,15 +124,15 @@ void Index::searchAtLayer(
 
 	while (!candidates.empty()) {
 		NodeDistance candidate = candidates.nearest();
+		candidates.pop();
 
 		if (candidate.distance > result.furthest().distance) {
 			break;
 		}
 
-		NodeList neighbourhood = candidate.node->getNeighbourhood(layer);
-		candidates.pop();
+		std::unique_lock<std::mutex> lock(candidate.node->layersMutexes[layer]);
 
-		for (NodePtr neighbour : neighbourhood) {
+		for (const NodePtr &neighbour : candidate.node->layers[layer]) {
 			if (neighbour->id >= candidatesCount || visited[neighbour->id]) {
 				continue;
 			}
@@ -177,7 +162,7 @@ void Index::selectNeighbours(
 
 		bool isCloser = true;
 
-		for (NodePtr resultNode : result) {
+		for (const NodePtr &resultNode : result) {
 			if (distance(resultNode, candidate.node) < candidate.distance) {
 				isCloser = false;
 				break;
@@ -239,9 +224,6 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 	NodeList neighbours;
 	neighbours.reserve(maxNeighboursCount);
 
-	NodeList newNeighbours;
-	newNeighbours.reserve(maxNeighboursCount);
-
 	NodeQueue sortedNeighbours;
 	sortedNeighbours.reserve(maxNeighboursCount);
 
@@ -252,27 +234,27 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 		selectNeighbours(newNode, M, layer, nearestNodes, discarded, neighbours);
 		discarded.clear();
 
-		for (NodePtr neighbour : neighbours) {
+		for (const NodePtr &neighbour : neighbours) {
 			newNode->addNeighbour(neighbour, layer);
 			neighbour->addNeighbour(newNode, layer);
 		}
 
 		int maxM = (layer == 0) ? M0 : M;
 
-		for (NodePtr neighbour : neighbours) {
-			if (neighbour->getNeighbourhoodSize(layer) > maxM) {
-				NodeList neighbourhood = neighbour->getNeighbourhood(layer);
+		for (const NodePtr &neighbour : neighbours) {
+			std::unique_lock<std::mutex> lock(neighbour->layersMutexes[layer]);
+			NodeList &neighbourhood = neighbour->layers[layer];
 
-				for (NodePtr node : neighbourhood) {
+			if (neighbourhood.size() > maxM) {
+				for (const NodePtr &node : neighbourhood) {
 					sortedNeighbours.emplace(distance(neighbour, node), node);
 				}
 
-				selectNeighbours(neighbour, maxM, layer, sortedNeighbours, discarded, newNeighbours);
-				neighbour->setNeighbourhood(newNeighbours, layer);
+				neighbourhood.clear();
+				selectNeighbours(neighbour, maxM, layer, sortedNeighbours, discarded, neighbourhood);
 
 				sortedNeighbours.clear();
 				discarded.clear();
-				newNeighbours.clear();
 			}
 		}
 
@@ -346,7 +328,7 @@ void Index::save(std::string filename) {
 	visited[entryPoint->id] = true;
 
 	while (!candidates.empty()) {
-		NodePtr candidate = candidates.back();
+		const NodePtr &candidate = candidates.back();
 		candidates.pop_back();
 
 		nodes.push_back(candidate);
@@ -451,7 +433,7 @@ void Index::load(std::string filename, Metric *metric) {
 		std::getline(lineStream, item, ',');
 		int layersCount = std::stoi(item);
 
-		nodes[id] = std::make_shared<Node>(id, std::move(name), std::move(descriptor), layersCount, M + 1, M0 + 1);
+		nodes[id] = std::move(std::make_shared<Node>(id, std::move(name), std::move(descriptor), layersCount, M + 1, M0 + 1));
 	}
 
 	entryPoint = nodes[entryPointId];
