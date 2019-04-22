@@ -1,10 +1,12 @@
-import src.app.server.net.preprocessing.preprocess as preprocess
 from tensorflow.contrib import predictor
 import cv2
 import numpy as np
 
-_MODEL_DIR = 'model'
-_LANDMARKS_MODEL_PATH = 'landmarks\\shape_predictor_68_face_landmarks.dat'
+import net.preprocessing.preprocess as preprocess
+
+# TODO: must be taken from os.environ probably
+_MODEL_DIR = './resources/model'
+_LANDMARKS_MODEL_PATH = './resources/landmarks/shape_predictor_68_face_landmarks.dat'
 
 
 predict_fn = None

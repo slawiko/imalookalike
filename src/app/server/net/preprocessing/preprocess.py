@@ -1,6 +1,7 @@
 import numpy as np
-import src.app.server.net.preprocessing.landmarks as lm
-import src.app.server.net.preprocessing.cropper as cr
+
+import net.preprocessing.landmarks as lm
+import net.preprocessing.cropper as cr
 
 
 _DEFAULT_MEAN_LANDMARKS = np.array([[-0.46911814, -0.51348481],
