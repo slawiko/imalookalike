@@ -8,7 +8,7 @@ ENV \
 RUN \
   addgroup -S ${APPGROUP} && \
   adduser -S ${APPUSER} -G ${APPGROUP} && \
-  mkdir /app && \
+  mkdir $CLIENT_DIR && \
   chown ${APPUSER}:${APPGROUP} $CLIENT_DIR
 USER ${APPUSER}
 
@@ -31,16 +31,17 @@ RUN \
 
 ENV \
   APPUSER=appuser \
-  APPGROUP=appgroup
+  APPGROUP=appgroup \
+  SERVER_DIR=/app
 
 RUN \
   addgroup --system ${APPGROUP} && \
   adduser --system --ingroup ${APPGROUP} ${APPUSER} && \
-  mkdir /app && \
-  chown ${APPUSER}:${APPGROUP} /app
+  mkdir $SERVER_DIR && \
+  chown ${APPUSER}:${APPGROUP} $SERVER_DIR
 USER ${APPUSER}
 
-WORKDIR /app
+WORKDIR $SERVER_DIR
 
 # docker layers caching usage
 COPY server/requirements.txt ./
@@ -49,7 +50,7 @@ RUN pip install --user -r ./requirements.txt --no-cache-dir
 COPY ./server ./server
 COPY --from=client /app/build ./client/build
 
-WORKDIR /app/server
+WORKDIR $SERVER_DIR/server
 
 EXPOSE 8000
 ENTRYPOINT [ "/usr/local/bin/python", "./app.py" ]
