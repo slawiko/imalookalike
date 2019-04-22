@@ -109,20 +109,21 @@ export class FileUpload extends React.Component<Props, State> {
 
     reader.readAsArrayBuffer(file);
 
-    reader.addEventListener('loadend', e => {
-      fetch('/upload', {
-        method: 'POST',
-        body: reader.result,
-        headers: {
-          'Content-type': 'image/jpeg'
-        }
-      })
-        .then(res => {
-          this.props.onResponseReceived(res);
-        })
-        .catch(e => {
-          this.props.onError(e);
+    reader.addEventListener('loadend', async (e) => {
+      try {
+        const result = await fetch('/upload', {
+          method: 'POST',
+          body: reader.result,
+          headers: {
+            'Content-type': 'image/jpeg'
+          }
         });
+
+        const json = await result.text();
+        this.props.onResponseReceived(json);
+      } catch (e) {
+        this.props.onError(e);
+      }
     });
   }
 }
