@@ -18,8 +18,6 @@ std::mt19937 Index::gen(rd());
 std::uniform_real_distribution<double> Index::dist(0.0, 1.0);
 
 double Euclidean::distance(const std::vector<double> &a, const std::vector<double> &b) {
-	// TODO: check descriptor sizes equality
-
 	double ac = 0.0;
 
 	for (int i = 0; i < a.size(); ++i) {
@@ -41,32 +39,22 @@ id(id), name(std::move(name)), descriptor(std::move(descriptor)), maxLayer(layer
 }
 
 Index::NodeList Index::Node::getNeighbourhood(int layer) {
-	// TODO: check layer
-
 	std::unique_lock<std::mutex> lock(layersMutexes[layer]);
-
 	return layers[layer];
 }
 
 void Index::Node::setNeighbourhood(NodeList neighbourhood, int layer) {
-	// TODO: check layer
-
 	std::unique_lock<std::mutex> lock(layersMutexes[layer]);
-
 	layers[layer] = std::move(neighbourhood);
 }
 
 void Index::Node::addNeighbour(const NodePtr &neighbour, int layer) {
-	// TODO: check layer
-
 	std::unique_lock<std::mutex> lock(layersMutexes[layer]);
-
 	layers[layer].push_back(neighbour);
 }
 
 int Index::Node::getNeighbourhoodSize(int layer) {
 	std::unique_lock<std::mutex> lock(layersMutexes[layer]);
-
 	return layers[layer].size();
 }
 
@@ -109,7 +97,6 @@ void Index::copy(Index &&other) {
 
 Index::NodePtr Index::getEntryPoint() {
 	std::unique_lock<std::mutex> lock(entryMutex);
-
 	return entryPoint;
 }
 
@@ -125,13 +112,11 @@ void Index::setEntryPoint(const NodePtr &newEntryPoint) {
 
 int Index::getSize() {
 	std::unique_lock<std::mutex> lock(idMutex);
-
 	return maxId + 1;
 }
 
 int Index::generateId() {
 	std::unique_lock<std::mutex> lock(idMutex);
-
 	return ++maxId;
 }
 
@@ -214,8 +199,6 @@ void Index::selectNeighbours(
 }
 
 void Index::insert(std::string name, std::vector<double> descriptor) {
-	// TODO: check descriptor size
-
 	int nodeLayer = static_cast<int>(-std::log(Index::generateRand()) * mL);
 	NodePtr newNode = createNode(std::move(name), std::move(descriptor), nodeLayer);
 
@@ -251,11 +234,16 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 		nearestNodes.clear();
 	}
 
+	int maxNeighboursCount = std::max(M, M0) + 1;
+
 	NodeList neighbours;
-	neighbours.reserve(M0 + 1);
+	neighbours.reserve(maxNeighboursCount);
 
 	NodeList newNeighbours;
+	newNeighbours.reserve(maxNeighboursCount);
+
 	NodeQueue sortedNeighbours;
+	sortedNeighbours.reserve(maxNeighboursCount);
 
 	for (int layer = std::min(nodeLayer, maxLayer); layer >= 0; --layer) {
 		searchAtLayer(newNode, entry, efConstruction, layer, candidates, visited, candidatesCount, nearestNodes);
@@ -274,11 +262,6 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 		for (NodePtr neighbour : neighbours) {
 			if (neighbour->getNeighbourhoodSize(layer) > maxM) {
 				NodeList neighbourhood = neighbour->getNeighbourhood(layer);
-
-				if (newNeighbours.capacity() == 0) {
-					newNeighbours.reserve(M0 + 1);
-					sortedNeighbours.reserve(M0 + 1);
-				}
 
 				for (NodePtr node : neighbourhood) {
 					sortedNeighbours.emplace(distance(neighbour, node), node);
@@ -308,8 +291,6 @@ std::vector<SearchResult> Index::search(std::vector<double> descriptor, int k) {
 	if (!entryPoint) {
 		return std::vector<SearchResult>();
 	}
-
-	// TODO: check descriptor size
 
 	NodePtr node = std::make_shared<Node>(std::move(descriptor));
 
@@ -408,8 +389,6 @@ void Index::save(std::string filename) {
 			file << "\n";
 		}
 	}
-
-	file.close();
 }
 
 void Index::load(std::string filename, Metric *metric) {
@@ -422,28 +401,28 @@ void Index::load(std::string filename, Metric *metric) {
 	getline(file, line);
 	lineStream.str(line);
 
-	getline(lineStream, item, ',');
+	std::getline(lineStream, item, ',');
 	int size = std::stoi(item);
 
-	getline(lineStream, item, ',');
+	std::getline(lineStream, item, ',');
 	int entryPointId = std::stoi(item);
 
-	getline(lineStream, item, ',');
+	std::getline(lineStream, item, ',');
 	maxId = std::stoi(item);
 
-	getline(lineStream, item, ',');
+	std::getline(lineStream, item, ',');
 	descriptorSize = std::stoi(item);
 
-	getline(lineStream, item, ',');
+	std::getline(lineStream, item, ',');
 	M = std::stoi(item);
 
-	getline(lineStream, item, ',');
+	std::getline(lineStream, item, ',');
 	M0 = std::stoi(item);
 
-	getline(lineStream, item, ',');
+	std::getline(lineStream, item, ',');
 	efConstruction = std::stoi(item);
 
-	getline(lineStream, item, ',');
+	std::getline(lineStream, item, ',');
 	efSearch = std::stoi(item);
 
 	this->metric = metric;
@@ -455,21 +434,21 @@ void Index::load(std::string filename, Metric *metric) {
 		lineStream.str(line);
 		lineStream.clear();
 
-		getline(lineStream, item, ',');
+		std::getline(lineStream, item, ',');
 		int id = std::stoi(item);
 
 		std::string name;
-		getline(lineStream, name, ',');
+		std::getline(lineStream, name, ',');
 
 		std::vector<double> descriptor;
 		descriptor.reserve(descriptorSize);
 
 		for (int j = 0; j < descriptorSize; ++j) {
-			getline(lineStream, item, ',');
+			std::getline(lineStream, item, ',');
 			descriptor.push_back(std::stod(item));
 		}
 
-		getline(lineStream, item, ',');
+		std::getline(lineStream, item, ',');
 		int layersCount = std::stoi(item);
 
 		nodes[id] = std::make_shared<Node>(id, std::move(name), std::move(descriptor), layersCount, M + 1, M0 + 1);
@@ -481,20 +460,18 @@ void Index::load(std::string filename, Metric *metric) {
 		lineStream.str(line);
 		lineStream.clear();
 
-		getline(lineStream, item, ',');
+		std::getline(lineStream, item, ',');
 		int nodeId = std::stoi(item);
 
-		getline(lineStream, item, ',');
+		std::getline(lineStream, item, ',');
 		int layer = std::stoi(item);
 
-		getline(lineStream, item, ',');
+		std::getline(lineStream, item, ',');
 		int neighboursCount = std::stoi(item);
 
 		for (int i = 0; i < neighboursCount; ++i) {
-			getline(lineStream, item, ',');
+			std::getline(lineStream, item, ',');
 			nodes[nodeId]->layers[layer].push_back(nodes[std::stoi(item)]);
 		}
 	}
-
-	file.close();
 }

@@ -91,6 +91,8 @@ class Index {
 	void selectNeighbours(const NodePtr &target, int count, int layer,
 		NodeQueue &candidates, NodeList &discarded, NodeList &result);
 
+	void load(std::string filename, Metric *metric = new Euclidean());
+
 public:
 	Index(int descriptorSize, Settings settings = Settings());
 
@@ -116,8 +118,7 @@ public:
 	void insert(std::string name, std::vector<double> descriptor);
 	std::vector<SearchResult> search(std::vector<double> descriptor, int k);
 
-	void save(std::string filename = "index.dump");
-	void load(std::string filename = "index.dump", Metric *metric = new Euclidean());
+	void save(std::string filename);
 };
 
 class Index::Node {
@@ -170,7 +171,7 @@ public:
 	}
 
 	int size() {
-		return static_cast<int>(container.size());
+		return container.size();
 	}
 
 	int capacity() {

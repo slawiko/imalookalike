@@ -4,8 +4,6 @@
 #include <vector>
 #include <string>
 
-#include <chrono>
-
 #include "index.h"
 #include "thread_pool.h"
 #include "httplib.h"
@@ -23,8 +21,6 @@ std::vector<double> parseDescriptor(std::istream &in, int descriptorSize) {
 }
 
 void parseAndInsert(std::string line, Index &index, int descriptorSize) {
-	static int counter = 0;
-
 	std::istringstream lineStream(line);
 
 	std::string name;
@@ -32,57 +28,53 @@ void parseAndInsert(std::string line, Index &index, int descriptorSize) {
 
 	std::vector<double> descriptor = parseDescriptor(lineStream, descriptorSize);
 
-	// TODO: check descriptor size
-
 	index.insert(std::move(name), std::move(descriptor));
-
-	++counter;
-	if (counter % 1000 == 0)
-		std::cout << counter << std::endl;
 }
 
-Index buildIndex(std::string fileName) {
-	// TODO: check file existence
+Index createIndex(std::string dataFileName, std::string dumpFileName, int baseSize) {
+	std::ifstream dumpFile(dumpFileName);
 
-	std::ifstream dump("index.dump");
+	if (dumpFile.good()) {
+		dumpFile.close();
 
-	if (dump.good()) {
 		std::cout << "Reading dump..." << std::endl;
 
-		return Index("index.dump");
+		return Index(dumpFileName);
 	}
 
 	std::cout << "Indexing..." << std::endl;
 
-	std::ifstream file(fileName);
+	std::ifstream dataFile(dataFileName);
 	std::string line;
 
-	getline(file, line);
+	getline(dataFile, line);
 
 	int descriptorSize = stoi(line);
 	Index index(descriptorSize);
 
-	for (int i = 0; i < 1000 && std::getline(file, line); ++i) {
+	for (int i = 0; i < baseSize && std::getline(dataFile, line); ++i) {
 		parseAndInsert(line, index, descriptorSize);
 	}
 
-	ThreadPool threadPool;
+	if (!dataFile.eof()) {
+		ThreadPool threadPool;
 
-	while (std::getline(file, line)) {
-		threadPool.enqueu([line, &index, descriptorSize]() {
-			parseAndInsert(line, index, descriptorSize);
-		});
+		while (std::getline(dataFile, line)) {
+			threadPool.enqueu([line, &index, descriptorSize]() {
+				parseAndInsert(line, index, descriptorSize);
+			});
+		}
+
+		threadPool.wait();
 	}
 
-	threadPool.wait();
-
-	index.save();
+	index.save(dumpFileName);
 
 	return index;
 }
 
 int main() {
-	Index index = buildIndex("index.data");
+	Index index = createIndex("index.data", "index.dump", 1000);
 	
 	httplib::Server app;
 
@@ -94,11 +86,7 @@ int main() {
 		std::istringstream bodyStream(req.body);
 		std::vector<double> descriptor = parseDescriptor(bodyStream, index.getDescriptorSize());
 
-		// TODO: check descriptor size
-
 		SearchResult searchResult = index.search(std::move(descriptor), 1)[0];
-
-		// TODO: handle empty result
 
 		std::ifstream file(searchResult.name, std::ios::binary | std::ios::ate);
 
@@ -110,8 +98,6 @@ int main() {
 
 		res.set_content(image, size, "image/jpeg");
 		res.set_header("Name", searchResult.name.c_str());
-
-		// TODO: handle image extension
 
 		file.close();
 		delete[] image;

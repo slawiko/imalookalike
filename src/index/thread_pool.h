@@ -53,19 +53,20 @@ public:
 	ThreadPool();
 	~ThreadPool();
 
+	ThreadPool(const ThreadPool &other) = delete;
+	ThreadPool& operator=(const ThreadPool &other) = delete;
+
 	ThreadPool(int threadCount) {
 		init(threadCount);
 	}
 
-	ThreadPool(const ThreadPool &other) {
-		init(other.workers.size());
-	}
-
 	ThreadPool(ThreadPool &&other) {
+		other.wait();
 		init(other.workers.size());
 	}
 
-	ThreadPool& operator=(const ThreadPool &other) {
+	ThreadPool& operator=(ThreadPool &&other) {
+		other.wait();
 		init(other.workers.size());
 	}
 
