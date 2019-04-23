@@ -151,7 +151,8 @@ class Index::NodeQueue {
 public:
 	void push(NodeDistance item);
 	void emplace(double distance, const NodePtr &node);
-	void pop();
+	void popNearest();
+	void popFurthest();
 
 	const NodeDistance& nearest() {
 		return container.front();

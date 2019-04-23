@@ -53,8 +53,12 @@ void Index::NodeQueue::emplace(double distance, const NodePtr &node) {
 	push_heap(container.begin(), container.end(), DistanceComparator());
 }
 
-void Index::NodeQueue::pop() {
+void Index::NodeQueue::popNearest() {
 	pop_heap(container.begin(), container.end(), DistanceComparator());
+	container.pop_back();
+}
+
+void Index::NodeQueue::popFurthest() {
 	container.pop_back();
 }
 
@@ -134,7 +138,7 @@ void Index::searchAtLayer(
 
 	while (!candidates.empty()) {
 		NodeDistance candidate = candidates.nearest();
-		candidates.pop();
+		candidates.popNearest();
 
 		if (candidate.distance > result.furthest().distance) {
 			break;
@@ -155,7 +159,7 @@ void Index::searchAtLayer(
 				result.emplace(neighbourDistance, neighbour);
 
 				if (result.size() > searchCount) {
-					result.pop();
+					result.popFurthest();
 				}
 			}
 		}
@@ -168,7 +172,7 @@ void Index::selectNeighbours(
 ) {
 	while (candidates.size() > 0 && result.size() < count) {
 		NodeDistance candidate = candidates.nearest();
-		candidates.pop();
+		candidates.popNearest();
 
 		bool isCloser = true;
 
@@ -310,7 +314,7 @@ std::vector<SearchResult> Index::search(std::vector<double> descriptor, int k) {
 		nearestNodes.clear();
 	}
 
-	searchAtLayer(node, entry, std::max(efSearch, k), 0, candidates, visited, candidatesCount, nearestNodes);
+	searchAtLayer(node, entry, searchCount, 0, candidates, visited, candidatesCount, nearestNodes);
 
 	int resultSize = std::min(k, nearestNodes.size());
 	std::vector<SearchResult> result;
