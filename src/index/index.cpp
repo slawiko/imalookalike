@@ -80,6 +80,16 @@ void Index::copy(Index &&other) {
 	mL = other.mL;
 }
 
+Index::Index(Index &&other) {
+	copy(std::move(other));
+}
+
+Index& Index::operator=(Index &&other) {
+	copy(std::move(other));
+
+	return *this;
+}
+
 Index::NodePtr Index::getEntryPoint() {
 	std::unique_lock<std::mutex> lock(entryMutex);
 	return entryPoint;

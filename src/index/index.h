@@ -103,13 +103,8 @@ public:
 	Index(const Index&) = delete;
 	Index& operator=(Index&) = delete;
 
-	Index(Index &&other) {
-		copy(std::move(other));
-	}
-
-	Index& operator=(Index &&other) {
-		copy(std::move(other));
-	}
+	Index(Index &&other);
+	Index& operator=(Index &&other);
 
 	int getDescriptorSize() {
 		return descriptorSize;

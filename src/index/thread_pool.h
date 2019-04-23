@@ -51,24 +51,14 @@ class ThreadPool {
 
 public:
 	ThreadPool();
+	ThreadPool(int threadCount);
 	~ThreadPool();
 
 	ThreadPool(const ThreadPool &other) = delete;
 	ThreadPool& operator=(const ThreadPool &other) = delete;
 
-	ThreadPool(int threadCount) {
-		init(threadCount);
-	}
-
-	ThreadPool(ThreadPool &&other) {
-		other.wait();
-		init(other.workers.size());
-	}
-
-	ThreadPool& operator=(ThreadPool &&other) {
-		other.wait();
-		init(other.workers.size());
-	}
+	ThreadPool(ThreadPool &&other);
+	ThreadPool& operator=(ThreadPool &&other);
 
 	void enqueu(std::function<void()> task);
 
