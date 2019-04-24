@@ -1,5 +1,5 @@
 #ifndef ARGUMENTS_H
-#define ARGIMNETS_H
+#define ARGUMENTS_H
 
 #include <string>
 #include <functional>
