@@ -6,6 +6,7 @@
 
 #include "index.h"
 #include "thread_pool.h"
+#include "arguments.h"
 #include "httplib.h"
 
 std::vector<double> parseDescriptor(std::istream &in, int descriptorSize) {
@@ -30,8 +31,6 @@ void parseAndInsert(std::string line, Index &index, int descriptorSize) {
 
 	std::vector<double> descriptor = parseDescriptor(lineStream, descriptorSize);
 
-	// TODO: check descriptor size
-
 	index.insert(std::move(name), std::move(descriptor));
 
 	++counter;
@@ -39,53 +38,58 @@ void parseAndInsert(std::string line, Index &index, int descriptorSize) {
 		std::cout << counter << std::endl;
 }
 
-Index loadIndex(std::string fileName) {
-	// TODO: check file existence
+Index createIndex(Settings settings, std::string dataPath, std::string dumpPath, int baseSize) {
+	std::ifstream dumpFile(dumpPath);
 
-	std::ifstream file(fileName);
+	if (dumpFile.good()) {
+		dumpFile.close();
+
+		std::cout << "Reading dump..." << std::endl;
+
+		return Index(dumpPath);
+	}
+
+	std::cout << "Indexing..." << std::endl;
+
+	std::ifstream dataFile(dataPath);
 	std::string line;
 
-	getline(file, line);
+	getline(dataFile, line);
 
 	int descriptorSize = stoi(line);
-	Index index(descriptorSize);
+	Index index(descriptorSize, settings);
 
-	for (int i = 0; i < 1000 && std::getline(file, line); ++i) {
+	for (int i = 0; i < baseSize && std::getline(dataFile, line); ++i) {
 		parseAndInsert(line, index, descriptorSize);
 	}
 
-	ThreadPool threadPool;
+	if (!dataFile.eof()) {
+		ThreadPool threadPool;
 
-	while (std::getline(file, line)) {
-		threadPool.enqueu([line, &index, descriptorSize]() {
-			parseAndInsert(line, index, descriptorSize);
-		});
+		while (std::getline(dataFile, line)) {
+			threadPool.enqueu([line, &index, descriptorSize]() {
+				parseAndInsert(line, index, descriptorSize);
+			});
+		}
+
+		threadPool.wait();
 	}
 
-	threadPool.wait();
+	index.save(dumpPath);
 
 	return index;
 }
 
-int main() {
-	std::cout << "Indexing..." << std::endl;
-	Index index = loadIndex("index.data");
-	
-	httplib::Server app;
-
-	app.Get("/health", [](const httplib::Request&, httplib::Response &res) {
+void setServerRoutes(httplib::Server &server, Index &index) {
+	server.Get("/health", [](const httplib::Request&, httplib::Response &res) {
 		res.set_content("I'm OK", "text/plain");
 	});
 
-	app.Post("/neighbour", [&index](const httplib::Request &req, httplib::Response &res) {
+	server.Post("/neighbour", [&index](const httplib::Request &req, httplib::Response &res) {
 		std::istringstream bodyStream(req.body);
 		std::vector<double> descriptor = parseDescriptor(bodyStream, index.getDescriptorSize());
 
-		// TODO: check descriptor size
-
 		SearchResult searchResult = index.search(std::move(descriptor), 1)[0];
-
-		// TODO: handle empty result
 
 		std::ifstream file(searchResult.name, std::ios::binary | std::ios::ate);
 
@@ -98,15 +102,21 @@ int main() {
 		res.set_content(image, size, "image/jpeg");
 		res.set_header("Name", searchResult.name.c_str());
 
-		// TODO: handle image extension
-
 		file.close();
 		delete[] image;
 	});
+}
 
-	int port = 8000;
-	std::cout << "Server is listening on port " << port << std::endl;
-	app.listen("localhost", port);
+int main(int argc, char **argv) {
+	Arguments args = parseArguments(argc, argv);
+
+	Index index = createIndex(args.indexSettings, args.dataPath, args.dumpPath, args.baseSize);
+
+	httplib::Server server;
+	setServerRoutes(server, index);
+
+	std::cout << "Server is listening on port " << args.port << std::endl;
+	server.listen("localhost", args.port);
 
 	return 0;
 }

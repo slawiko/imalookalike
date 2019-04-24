@@ -1,0 +1,26 @@
+.file-chooser {
+  text-align: center;
+  padding: 80px 20px;
+  outline: 2px dashed grey;
+  transition : 300ms ease-out;
+}
+
+.file-chooser > input[type=file] {
+  opacity: 0;
+  width: 0.1px;
+  height: 0.1px;
+}
+
+.file-chooser strong:hover {
+  color: red;
+}
+
+.file-chooser.drag-in {
+  background: white;
+  outline-offset: -15px;
+}
+
+.file-chooser.drag-out {
+  background-color: darkgrey;
+  outline-offset: -10px;
+}

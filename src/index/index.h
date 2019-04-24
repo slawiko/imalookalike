@@ -3,10 +3,10 @@
 
 #include <string>
 #include <vector>
-#include <unordered_set>
 #include <random>
 #include <cmath>
 #include <mutex>
+#include <memory>
 
 class Metric {
 public:
@@ -25,11 +25,7 @@ struct Settings {
 	int efConstruction = 100;
 	int efSearch = 10;
 	double mL = 1.0 / std::log(M);
-
-	void tuneToM() {
-		M0 = 2 * M;
-		mL = 1.0 / std::log(M);
-	}
+	bool keepPrunedConnections = true;
 };
 
 struct SearchResult {
@@ -46,16 +42,17 @@ class Index {
 	struct NodeDistance;
 	class NodeQueue;
 
-	using NodeList = std::vector<Node*>;
+	using NodePtr = std::shared_ptr<Node>;
+	using NodeList = std::vector<NodePtr>;
 
 	static std::mt19937 gen;
 	static std::uniform_real_distribution<double> dist;
 
-	Node *entryPoint = nullptr;
-	int size = 0;
+	NodePtr entryPoint = NodePtr(nullptr);
+	int maxId = -1;
 
 	std::mutex entryMutex;
-	std::mutex sizeMutex;
+	std::mutex idMutex;
 
 	int descriptorSize;
 
@@ -65,7 +62,6 @@ class Index {
 	int efConstruction;
 	int efSearch;
 	double mL;
-	bool extendCandidates;
 	bool keepPrunedConnections;
 
 	static double generateRand() {
@@ -74,36 +70,36 @@ class Index {
 
 	void copy(Index &&other);
 
-	double distance(Node *a, Node *b);
+	double distance(const NodePtr &a, const NodePtr &b);
 
-	Node* getEntryPoint();
-	void setEntryPoint(Node *newEntryPoint);
+	NodePtr getEntryPoint();
+	void setEntryPoint(const NodePtr &newEntryPoint);
 
 	int getSize();
-	void increaseSize();
+	int generateId();
 
-	Node* createNode(std::string name, std::vector<double> descriptor, int layer);
-	Node* createNode(std::vector<double> descriptor);
+	NodePtr createNode(std::string name, std::vector<double> descriptor, int layer);
 
-	void searchAtLayer(Node *target, Node *entry, int count, int layer,
-		NodeQueue &candidates, std::unordered_set<Node*> &visited, NodeQueue &result);
+	void searchAtLayer(const NodePtr &target, const NodePtr &entry, int searchCount, int layer,
+		NodeQueue &candidates, bool *visited, int candidatesCount, NodeQueue &result);
 
-	void selectNeighbours(Node *target, int count, int layer,
-		NodeQueue &candidates, NodeList &result);
+	void selectNeighbours(const NodePtr &target, int count, int layer,
+		NodeQueue &candidates, NodeList &discarded, NodeList &result);
+
+	void load(std::string filename, Metric *metric = new Euclidean());
 
 public:
 	Index(int descriptorSize, Settings settings = Settings());
 
+	Index(std::string dumpName, Metric *metric = new Euclidean()) {
+		load(dumpName, metric);
+	}
+
 	Index(const Index&) = delete;
 	Index& operator=(Index&) = delete;
 
-	Index(Index &&other) {
-		copy(std::move(other));
-	}
-
-	Index& operator=(Index &&other) {
-		copy(std::move(other));
-	}
+	Index(Index &&other);
+	Index& operator=(Index &&other);
 
 	int getDescriptorSize() {
 		return descriptorSize;
@@ -111,35 +107,30 @@ public:
 
 	void insert(std::string name, std::vector<double> descriptor);
 	std::vector<SearchResult> search(std::vector<double> descriptor, int k);
+
+	void save(std::string filename);
 };
 
 class Index::Node {
-	std::vector<NodeList> layers;
-	int maxLayer = -1;
-
-	std::mutex mutex;
-
 public:
+	std::vector<NodeList> layers;
+	std::vector<std::mutex> layersMutexes;
+	int maxLayer = -1;
+	int id = -1;
 	std::string name;
 	std::vector<double> descriptor;
 
-	Node(std::string name, std::vector<double> descriptor, int layersCount, int neighboursCount, int neighboursCount0);
+	Node(int id, std::string name, std::vector<double> descriptor, int layersCount, int neighboursCount, int neighboursCount0);
+	Node(std::vector<double> descriptor) : descriptor(std::move(descriptor)) {}
 
-	int getMaxLayer() {
-		return maxLayer;
-	}
-
-	NodeList getNeighbourhood(int layer);
-	void setNeighbourhood(NodeList neighbourhood, int layer);
-	void addNeighbour(Node *neighbour, int layer);
-	int getNeighbourhoodSize(int layer);
+	void addNeighbour(const NodePtr &neighbour, int layer);
 };
 
 struct Index::NodeDistance {
 	double distance;
-	Node *node;
+	NodePtr node;
 
-	NodeDistance(double distance, Node *node) : distance(distance), node(node) {}
+	NodeDistance(double distance, const NodePtr &node) : distance(distance), node(node) {}
 };
 
 class Index::NodeQueue {
@@ -154,8 +145,9 @@ class Index::NodeQueue {
 
 public:
 	void push(NodeDistance item);
-	void emplace(double distance, Node *node);
-	void pop();
+	void emplace(double distance, const NodePtr &node);
+	void popNearest();
+	void popFurthest();
 
 	const NodeDistance& nearest() {
 		return container.front();
@@ -166,7 +158,7 @@ public:
 	}
 
 	int size() {
-		return static_cast<int>(container.size());
+		return container.size();
 	}
 
 	int capacity() {

@@ -65,6 +65,10 @@ ThreadPool::ThreadPool() {
 	init(threadCount ? threadCount : defaultThreadCount);
 }
 
+ThreadPool::ThreadPool(int threadCount) {
+	init(threadCount);
+}
+
 ThreadPool::~ThreadPool() {
 	wait();
 
@@ -77,6 +81,18 @@ ThreadPool::~ThreadPool() {
 	for (std::thread &thread : workers) {
 		thread.join();
 	}
+}
+
+ThreadPool::ThreadPool(ThreadPool &&other) {
+	other.wait();
+	init(other.workers.size());
+}
+
+ThreadPool& ThreadPool::operator=(ThreadPool &&other) {
+	other.wait();
+	init(other.workers.size());
+
+	return *this;
 }
 
 void ThreadPool::enqueu(std::function<void()> task) {
