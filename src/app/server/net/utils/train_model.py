@@ -2,7 +2,7 @@
 import numpy as np
 import tensorflow as tf
 from PIL import Image
-from src.net.utils.triplet_loss import batch_all_triplet_loss
+from src.app.server.net.utils.triplet_loss import batch_all_triplet_loss
 import sys
 import os
 import csv
