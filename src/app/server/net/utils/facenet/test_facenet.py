@@ -1,5 +1,5 @@
 import tensorflow as tf
-import src.app.server.net.utils.facenet.facenet as facenet
+import net.utils.facenet.facenet as facenet
 import cv2
 
 input_image_size = 160

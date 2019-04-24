@@ -4,7 +4,7 @@ import numpy as np
 import concurrent.futures
 import io
 import cv2
-from src.net.prediction import predictor
+from net.prediction import predictor
 
 
 def process_batch(img_keys, input_dir, output_file):

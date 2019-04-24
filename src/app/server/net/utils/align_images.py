@@ -2,7 +2,7 @@ import cv2
 import csv
 import sys
 import numpy as np
-import src.net.preprocessing.preprocess as p
+import net.preprocessing.preprocess as p
 import concurrent.futures
 
 LANDMARKS_MODEL_PATH = 'landmarks\\shape_predictor_68_face_landmarks.dat'
