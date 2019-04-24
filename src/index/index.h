@@ -26,11 +26,6 @@ struct Settings {
 	int efSearch = 10;
 	double mL = 1.0 / std::log(M);
 	bool keepPrunedConnections = true;
-
-	void tuneToM() {
-		M0 = 2 * M;
-		mL = 1.0 / std::log(M);
-	}
 };
 
 struct SearchResult {
