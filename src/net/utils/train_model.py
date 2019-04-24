@@ -2,6 +2,7 @@
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+from src.net.utils.triplet_loss import batch_all_triplet_loss
 import sys
 import os
 import csv
@@ -17,8 +18,10 @@ TMP_MODEL_DIR = '/tmp/mnist_convnet_model'
 image_size = 256
 full_num_classes = 10172
 num_classes = 10172
-batch_size = 40
 embedding_size = 128
+margin = 0.5
+p = 4
+batch_size = p * 10
 
 
 def cnn_model_fn(features, labels, mode):
@@ -72,42 +75,13 @@ def cnn_model_fn(features, labels, mode):
     dropout2 = tf.layers.dropout(
         inputs=relu, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
 
-    # embedding = tf.layers.dense(inputs=dropout2, units=embedding_size)
-    #
-    # if mode == tf.estimator.ModeKeys.PREDICT:
-    #     predictions = {"embedding": embedding}
-    #     return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
-    #
-    # logits = tf.layers.dense(inputs=embedding, units=num_classes)
-    # classes = tf.argmax(input=logits, axis=1)
-    #
-    # onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=num_classes)
-    # loss = tf.losses.softmax_cross_entropy(
-    #     onehot_labels=onehot_labels, logits=logits)
-    #
-    # tf.summary.scalar("loss", loss)
-    #
-    # if mode == tf.estimator.ModeKeys.TRAIN:
-    #     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-    #     global_step = tf.train.get_global_step()
-    #     optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
-    #     with tf.control_dependencies(update_ops):
-    #         train_op = optimizer.minimize(loss, global_step=global_step)
-    #     return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
-    # else:
-    #     eval_metric_ops = {
-    #         "accuracy": tf.metrics.accuracy(labels=labels, predictions=classes)
-    #     }
-    #     return tf.estimator.EstimatorSpec(
-    #         mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
-
     embedding = tf.layers.dense(inputs=dropout2, units=embedding_size)
 
     if mode == tf.estimator.ModeKeys.PREDICT:
         predictions = {"embedding": embedding}
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    loss = tf.contrib.losses.metric_learning.triplet_semihard_loss(labels, embedding)
+    loss, fraction = batch_all_triplet_loss(labels, embedding, margin)
 
     tf.summary.scalar("loss", loss)
 
@@ -119,8 +93,11 @@ def cnn_model_fn(features, labels, mode):
             train_op = optimizer.minimize(loss, global_step=global_step)
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
     else:
+        eval_metric_ops = {
+            "positive_triplets_fraction": tf.metrics.mean(fraction)
+        }
         return tf.estimator.EstimatorSpec(
-            mode=mode, loss=loss)
+            mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
 
 def serving_input_fn():
@@ -157,14 +134,11 @@ def batch_generator(data_folder, image_keys, labels):
     while True:
         random_label = np.random.choice(labels)
 
-        index1 = np.random.choice(np.nonzero(labels == random_label)[0])
-        index2 = np.random.choice(np.nonzero(labels == random_label)[0])
+        indices = np.random.choice(np.nonzero(labels == random_label)[0], p)
 
-        img1 = Image.open(os.path.join(data_folder, image_keys[index1]))
-        img2 = Image.open(os.path.join(data_folder, image_keys[index2]))
-
-        yield np.array(img1), random_label
-        yield np.array(img2), random_label
+        for index in indices:
+            img = Image.open(os.path.join(data_folder, image_keys[index]))
+            yield np.array(img), random_label
 
 
 def input_fn(data_folder, image_keys, labels, batch_size):
@@ -199,15 +173,10 @@ def main(unused_argv):
     labels = labels - np.ones(labels.shape)
     eval_partitions = load_anno_from_file(image_keys, EVAL_PARTITIONS_FILE)
 
-    # needed_labels = [randint(0, full_num_classes - 1) for _ in range(num_classes)]
-    # indices = [i for i, label in enumerate(labels) if labels[i] in needed_labels]
-    #
-    # image_keys = image_keys[indices]
-    # labels = relabel(labels[indices])
-    # eval_partitions = eval_partitions[indices]
-
     train_indices = [i for i, label in enumerate(eval_partitions) if label in (0, 1)]
     eval_indices = [i for i, label in enumerate(eval_partitions) if label not in (0, 1)]
+
+    eval_count_per_iteration = len(eval_indices) // 100
 
     print(len(train_indices))
     print(len(labels))
@@ -227,9 +196,18 @@ def main(unused_argv):
             steps=10,
             hooks=[early_stopping]
         )
-        # eval_results = classifier.evaluate(
-        #     input_fn=lambda: input_fn(DATA_DIR, image_keys[eval_indices], labels[eval_indices], batch_size))
-        # print(eval_results)
+        indices = np.random.choice(eval_indices, eval_count_per_iteration)
+        eval_data = load_images_from_folder(DATA_DIR, image_keys[indices])
+        eval_labels = labels[indices]
+
+        eval_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x={"x": eval_data},
+            y=eval_labels,
+            num_epochs=1,
+            shuffle=False)
+
+        eval_results = classifier.evaluate(input_fn=eval_input_fn)
+        print(eval_results)
     classifier.export_saved_model(MODEL_DIR, serving_input_fn)
     return 0
 
