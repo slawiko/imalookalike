@@ -3,56 +3,76 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <exception>
+#include <stdexcept>
 
 #include "arguments.h"
 
-static const std::vector<Param> params{
-	Param("--help", "-h", "print info about arguments", [](Arguments&, std::string) {
-		printHelp();
+const std::vector<Arguments::Param> Arguments::params = {
+	Param("--help", "-h", "print info about arguments", [](const Arguments& args, const std::string) {
+		args.printHelp();
 		exit(0);
 	}),
 
 	Param("--M", "max count of neighbours for nodes on non-zero layers",
-		[](Arguments &args, std::string value) {args.indexSettings.M = std::stoi(value);}),
+		[](const Arguments &args, const std::string value) {args.indexSettings.M = args.positive(std::stoi(value));}),
 
 	Param("--M0", "max count of neighbours for nodes on zero layers",
-		[](Arguments &args, std::string value) {args.indexSettings.M0 = std::stoi(value);}),
+		[](const Arguments &args, const std::string value) {args.indexSettings.M0 = args.positive(std::stoi(value));}),
 
 	Param("--efConstruction", "-eC", "count of tracked nearest nodes during index creation",
-		[](Arguments &args, std::string &value) {args.indexSettings.efConstruction = std::stoi(value);}),
+		[](const Arguments &args, const std::string &value) {args.indexSettings.efConstruction = args.positive(std::stoi(value));}),
 
 	Param("--efSearch", "-eS", "count of tracked nearest nodes during search",
-		[](Arguments &args, std::string &value) {args.indexSettings.efSearch = std::stoi(value);}),
+		[](const Arguments &args, const std::string &value) {args.indexSettings.efSearch = args.positive(std::stoi(value));}),
 
 	Param("--mL", "prefactor for random level generation",
-		[](Arguments &args, std::string &value) {args.indexSettings.mL = std::stod(value);}),
+		[](const Arguments &args, const std::string &value) {args.indexSettings.mL = args.positiveOrZero(std::stod(value));}),
 
 	Param("--keepPrunedConnections", "-k", "if to keep constant number of nodes neighbours",
-		[](Arguments &args, std::string&) {args.indexSettings.keepPrunedConnections = true;}),
+		[](const Arguments &args, const std::string&) {args.indexSettings.keepPrunedConnections = true;}),
 
 	Param("--data", "path to file with objects for index",
-		[](Arguments &args, std::string &value) {args.dataPath = value;}),
+		[](const Arguments &args, const std::string &value) {args.dataPath = args.notEmpty(value);}),
 
 	Param("--dump", "path to file with index dump",
-		[](Arguments &args, std::string &value) {args.dumpPath = value;}),
+		[](const Arguments &args, const std::string &value) {args.dumpPath = args.notEmpty(value);}),
 
 	Param("--base", "count of object, that will be inserted sequentially",
-		[](Arguments &args, std::string &value) {args.baseSize = std::stoi(value);}),
+		[](const Arguments &args, const std::string &value) {args.baseSize = args.positiveOrZero(std::stoi(value));}),
 
 	Param("--port", "port, that web-server listen to",
-		[](Arguments &args, std::string &value) {args.port = std::stoi(value);}),
+		[](const Arguments &args, const std::string &value) {args.port = args.positiveOrZero(std::stoi(value));}),
 };
 
-void printHelp() {
-	for (const Param &param : params) {
-		param.print();
+template<class T>
+T Arguments::positive(T value) const {
+	if (value <= 0) {
+		throw std::exception("value should be positive");
 	}
+
+	return value;
 }
 
-Arguments parseArguments(int argc, char **argv) {
-	Arguments args;
+template<class T>
+T Arguments::positiveOrZero(T value) const {
+	if (value < 0) {
+		throw std::exception("value should be positive or zero");
+	}
 
-	for (int i = 0; i < argc; ++i) {
+	return value;
+}
+
+std::string Arguments::notEmpty(std::string value) const {
+	if (value.empty()) {
+		throw std::exception("value shouldn't be empty");
+	}
+
+	return value;
+}
+
+Arguments::Arguments(int argc, char **argv) {
+	for (int i = 1; i < argc; ++i) {
 		std::istringstream argStream(argv[i]);
 
 		std::string paramName;
@@ -61,13 +81,39 @@ Arguments parseArguments(int argc, char **argv) {
 		getline(argStream, paramName, '=');
 		getline(argStream, value);
 
+		bool isHandled = false;
+		std::string errorMessage;
+
 		for (const Param &param : params) {
 			if (param.check(paramName)) {
-				param.apply(args, value);
+
+				try {
+					param.handle(*this, value);
+				} catch (const std::invalid_argument &e) {
+					errorMessage = "invalid value";
+				} catch (const std::out_of_range &e) {
+					errorMessage = "value is out of range";
+				} catch (const std::exception &e) {
+					errorMessage = e.what();
+				}
+
+				isHandled = true;
 				break;
 			}
 		}
-	}
 
-	return args;
+		if (!isHandled) {
+			errorMessage = "unknown parameter";
+		}
+
+		if (!errorMessage.empty()) {
+			throw ArgumentsException(paramName + ": " + errorMessage);
+		}
+	}
+}
+
+void Arguments::printHelp() const {
+	for (const Param &param : params) {
+		param.print();
+	}
 }

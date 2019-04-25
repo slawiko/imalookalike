@@ -67,7 +67,7 @@ Index::Index(int descriptorSize, Settings settings) {
 	this->metric = settings.metric;
 	this->M = settings.M;
 	this->M0 = settings.M0;
-	this->efConstruction = std::max(settings.efConstruction, M);
+	this->efConstruction = std::max(settings.efConstruction, std::max(M, M0));
 	this->efSearch = settings.efSearch;
 	this->mL = settings.mL;
 	this->keepPrunedConnections = settings.keepPrunedConnections;

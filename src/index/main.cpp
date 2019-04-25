@@ -3,6 +3,7 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <exception>
 
 #include "index.h"
 #include "thread_pool.h"
@@ -22,8 +23,6 @@ std::vector<double> parseDescriptor(std::istream &in, int descriptorSize) {
 }
 
 void parseAndInsert(std::string line, Index &index, int descriptorSize) {
-	static int counter = 0;
-
 	std::istringstream lineStream(line);
 
 	std::string name;
@@ -32,10 +31,6 @@ void parseAndInsert(std::string line, Index &index, int descriptorSize) {
 	std::vector<double> descriptor = parseDescriptor(lineStream, descriptorSize);
 
 	index.insert(std::move(name), std::move(descriptor));
-
-	++counter;
-	if (counter % 1000 == 0)
-		std::cout << counter << std::endl;
 }
 
 Index createIndex(Settings settings, std::string dataPath, std::string dumpPath, int baseSize) {
@@ -89,9 +84,21 @@ void setServerRoutes(httplib::Server &server, Index &index) {
 		std::istringstream bodyStream(req.body);
 		std::vector<double> descriptor = parseDescriptor(bodyStream, index.getDescriptorSize());
 
+		if (descriptor.size() != index.getDescriptorSize()) {
+			res.status = 400;
+			res.set_content("Incorrect descriptor size", "text/plain");
+			return;
+		}
+
 		SearchResult searchResult = index.search(std::move(descriptor), 1)[0];
 
 		std::ifstream file(searchResult.name, std::ios::binary | std::ios::ate);
+
+		if (!file.good()) {
+			res.status = 500;
+			res.set_content("Can't find an image", "text/plain");
+			return;
+		}
 
 		int size = file.tellg();
 		char *image = new char[size];
@@ -108,15 +115,20 @@ void setServerRoutes(httplib::Server &server, Index &index) {
 }
 
 int main(int argc, char **argv) {
-	Arguments args = parseArguments(argc, argv);
+	try {
+		Arguments args(argc, argv);
 
-	Index index = createIndex(args.indexSettings, args.dataPath, args.dumpPath, args.baseSize);
+		Index index = createIndex(args.indexSettings, args.dataPath, args.dumpPath, args.baseSize);
 
-	httplib::Server server;
-	setServerRoutes(server, index);
+		httplib::Server server;
+		setServerRoutes(server, index);
 
-	std::cout << "Server is listening on port " << args.port << std::endl;
-	server.listen("localhost", args.port);
+		std::cout << "Server is listening on port " << args.port << std::endl;
+		server.listen("localhost", args.port);
+	} catch (const std::exception &e) {
+		std::cout << e.what() << std::endl;
+		return -1;
+	}
 
 	return 0;
 }
