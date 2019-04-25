@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <exception>
+#include <stdexcept>
 
 #include "index.h"
 #include "thread_pool.h"
@@ -49,7 +50,7 @@ Index createIndex(Settings settings, std::string dataPath, std::string dumpPath,
 	std::ifstream dataFile(dataPath);
 	
 	if (dataFile.fail()) {
-		throw std::exception("Can't find data file");
+		throw std::runtime_error("Can't find data file");
 	}
 	
 	std::string line;

@@ -48,7 +48,7 @@ const std::vector<Arguments::Param> Arguments::params = {
 template<class T>
 T Arguments::positive(T value) const {
 	if (value <= 0) {
-		throw std::exception("value should be positive");
+		throw std::runtime_error("value should be positive");
 	}
 
 	return value;
@@ -57,7 +57,7 @@ T Arguments::positive(T value) const {
 template<class T>
 T Arguments::positiveOrZero(T value) const {
 	if (value < 0) {
-		throw std::exception("value should be positive or zero");
+		throw std::runtime_error("value should be positive or zero");
 	}
 
 	return value;
@@ -65,7 +65,7 @@ T Arguments::positiveOrZero(T value) const {
 
 std::string Arguments::notEmpty(std::string value) const {
 	if (value.empty()) {
-		throw std::exception("value shouldn't be empty");
+		throw std::runtime_error("value shouldn't be empty");
 	}
 
 	return value;
