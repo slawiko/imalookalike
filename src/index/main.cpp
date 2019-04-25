@@ -47,6 +47,11 @@ Index createIndex(Settings settings, std::string dataPath, std::string dumpPath,
 	std::cout << "Indexing..." << std::endl;
 
 	std::ifstream dataFile(dataPath);
+	
+	if (dataFile.fail()) {
+		throw std::exception("Can't find data file");
+	}
+	
 	std::string line;
 
 	getline(dataFile, line);
@@ -94,7 +99,7 @@ void setServerRoutes(httplib::Server &server, Index &index) {
 
 		std::ifstream file(searchResult.name, std::ios::binary | std::ios::ate);
 
-		if (!file.good()) {
+		if (file.fail()) {
 			res.status = 500;
 			res.set_content("Can't find an image", "text/plain");
 			return;
