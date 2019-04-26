@@ -41,16 +41,25 @@ def compare_models(data_dir, image_keys, labels, eval_indices):
                                             margin)
 
     sess = tf.Session()
-    print("Custom accuracy: {}".format(1 - custom_stat.eval(session=sess)))
-    print("Facenet accuracy: {}".format(1 - facenet_stat.eval(session=sess)))
+
+    custom_acc = 1 - custom_stat.eval(session=sess)
+    facenet_acc = 1 - facenet_stat.eval(session=sess)
+
+    return custom_acc, facenet_acc
 
 
-def run(data_dir, labels_path, partitions_path, custom_model_path, facenet_model_path):
+def run(data_dir, labels_path, partitions_path, custom_model_path, facenet_model_path, num_exp=3):
     image_keys, labels, eval_indices = get_eval_data(data_dir, labels_path, partitions_path)
     init_models(custom_model_path, facenet_model_path)
 
-    for _ in range(3):
-        compare_models(data_dir, image_keys, labels, eval_indices)
+    custom_avg_acc, facenet_avg_acc = 0, 0
+    for _ in range(num_exp):
+        custom_acc, facenet_acc = compare_models(data_dir, image_keys, labels, eval_indices)
+        custom_avg_acc += custom_acc
+        facenet_avg_acc += facenet_acc
+
+    print("Custom average accuracy: {}".format(custom_avg_acc / num_exp))
+    print("Facenet average accuracy: {}".format(facenet_avg_acc / num_exp))
 
 
 if __name__ == "__main__":
