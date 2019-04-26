@@ -17,7 +17,7 @@ std::vector<double> parseDescriptor(std::istream &in, int descriptorSize) {
 	std::string item;
 
 	while (getline(in, item, ',')) {
-		descriptor.push_back(stod(item));
+		descriptor.push_back(std::stod(item));
 	}
 
 	return descriptor;
@@ -48,16 +48,16 @@ Index createIndex(Settings settings, std::string dataPath, std::string dumpPath,
 	std::cout << "Indexing..." << std::endl;
 
 	std::ifstream dataFile(dataPath);
-	
+
 	if (dataFile.fail()) {
-		throw std::runtime_error("Can't find data file");
+		throw std::runtime_error("Can't find neither data file nor dump file");
 	}
-	
+
 	std::string line;
 
 	getline(dataFile, line);
 
-	int descriptorSize = stoi(line);
+	int descriptorSize = std::stoi(line);
 	Index index(descriptorSize, settings);
 
 	for (int i = 0; i < baseSize && std::getline(dataFile, line); ++i) {
@@ -81,12 +81,16 @@ Index createIndex(Settings settings, std::string dataPath, std::string dumpPath,
 	return index;
 }
 
-void setServerRoutes(httplib::Server &server, Index &index) {
+void setServerRoutes(httplib::Server &server, Index &index, const std::string &dataset) {
 	server.Get("/health", [](const httplib::Request&, httplib::Response &res) {
 		res.set_content("I'm OK", "text/plain");
 	});
 
-	server.Post("/neighbour", [&index](const httplib::Request &req, httplib::Response &res) {
+	server.Get("/descriptor-size", [&index](const httplib::Request&, httplib::Response &res) {
+		res.set_content(std::to_string(index.getDescriptorSize()), "text/plain");
+	});
+
+	server.Post("/neighbour", [&index, &dataset](const httplib::Request &req, httplib::Response &res) {
 		std::istringstream bodyStream(req.body);
 		std::vector<double> descriptor = parseDescriptor(bodyStream, index.getDescriptorSize());
 
@@ -96,13 +100,21 @@ void setServerRoutes(httplib::Server &server, Index &index) {
 			return;
 		}
 
-		SearchResult searchResult = index.search(std::move(descriptor), 1)[0];
+		std::vector<SearchResult> searchResults = index.search(std::move(descriptor), 1);
 
-		std::ifstream file(searchResult.name, std::ios::binary | std::ios::ate);
+		if (searchResults.empty()) {
+			res.set_content("Index is empty", "text/plain");
+			return;
+		}
+
+		SearchResult searchResult = searchResults.front();
+
+		std::string imagePath = dataset + '/' + searchResult.name;
+		std::ifstream file(imagePath, std::ios::binary | std::ios::ate);
 
 		if (file.fail()) {
 			res.status = 500;
-			res.set_content("Can't find an image", "text/plain");
+			res.set_content("Can't find an image in the dataset", "text/plain");
 			return;
 		}
 
@@ -127,10 +139,12 @@ int main(int argc, char **argv) {
 		Index index = createIndex(args.indexSettings, args.dataPath, args.dumpPath, args.baseSize);
 
 		httplib::Server server;
-		setServerRoutes(server, index);
+		setServerRoutes(server, index, args.dataset);
 
-		std::cout << "Server is listening on port " << args.port << std::endl;
-		server.listen("localhost", args.port);
+		std::cout << "Server is listening on " << args.address << ":" << args.port << std::endl;
+		if (!server.listen(args.address.c_str(), args.port)) {
+			throw std::runtime_error("Invalid address or port");
+		}
 	} catch (const std::exception &e) {
 		std::cout << e.what() << std::endl;
 		return -1;

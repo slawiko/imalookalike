@@ -38,8 +38,14 @@ const std::vector<Arguments::Param> Arguments::params = {
 	Param("--dump", "path to file with index dump",
 		[](const Arguments &args, const std::string &value) {args.dumpPath = args.notEmpty(value);}),
 
+	Param("--dataset", "path to dataset directory",
+		[](const Arguments &args, const std::string &value) {args.dataset = args.notEmpty(value); }),
+
 	Param("--base", "count of object, that will be inserted sequentially",
 		[](const Arguments &args, const std::string &value) {args.baseSize = args.positiveOrZero(std::stoi(value));}),
+
+	Param("--address", "address, that web-server is hosted on",
+		[](const Arguments &args, const std::string &value) {args.address = args.notEmpty(value);}),
 
 	Param("--port", "port, that web-server listen to",
 		[](const Arguments &args, const std::string &value) {args.port = args.positiveOrZero(std::stoi(value));}),

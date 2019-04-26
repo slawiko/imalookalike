@@ -26,7 +26,9 @@ public:
 	mutable Settings indexSettings;
 	mutable std::string dataPath = "index.data";
 	mutable std::string dumpPath = "index.dump";
+	mutable std::string dataset = "./";
 	mutable int baseSize = 1000;
+	mutable std::string address = "127.0.0.1";
 	mutable int port = 8000;
 
 	Arguments(int argc, char **argv);
