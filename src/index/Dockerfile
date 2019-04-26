@@ -32,7 +32,7 @@ RUN \
 
 EXPOSE 8000
 
-ENTRYPOINT ["./index"]
+ENTRYPOINT ["./index", "--address=0.0.0.0", "--port=8000"]
 
 # TODO:
 #FROM alpine:3.9
