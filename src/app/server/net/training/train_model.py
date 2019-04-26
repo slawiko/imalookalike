@@ -2,10 +2,10 @@
 import numpy as np
 import tensorflow as tf
 from PIL import Image
-from net.utils.triplet_loss import batch_all_triplet_loss
 import sys
 import os
-import csv
+from net.training.triplet_loss import batch_all_triplet_loss
+from net.utils.file_utils import load_images_from_folder, load_image_keys, load_anno_from_file
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -103,30 +103,6 @@ def cnn_model_fn(features, labels, mode):
 def serving_input_fn():
     inputs = {"x": tf.placeholder(shape=[None, image_size, image_size, 3], dtype=tf.float32)}
     return tf.estimator.export.ServingInputReceiver(inputs, inputs)
-
-
-def load_image_keys(dataset_folder):
-    return np.array(sorted(os.listdir(dataset_folder)))
-
-
-def load_anno_from_file(image_keys, filename):
-    anno = []
-    counter = 0
-    with open(filename, 'r') as csvFile:
-        reader = csv.reader(csvFile, delimiter=' ')
-        for row in reader:
-            if row[0] == image_keys[counter]:
-                counter += 1
-                anno.append(row[1])
-    return np.array(anno, dtype=int)
-
-
-def load_images_from_folder(folder, image_keys):
-    images = []
-    for filename in image_keys:
-        img = Image.open(os.path.join(folder, filename))
-        images.append(np.asarray(img))
-    return np.array(images, dtype=np.float32)
 
 
 def batch_generator(data_folder, image_keys, labels):
