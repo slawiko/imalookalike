@@ -81,6 +81,35 @@ Index createIndex(Settings settings, std::string dataPath, std::string dumpPath,
 	return index;
 }
 
+std::string pickContentType(std::string fileName) {
+	static const std::unordered_map<std::string, std::string> contentTypes = {
+		{"jpeg", "image/jpeg"},
+		{"jpg", "image/jpeg"},
+		{"png", "image/png"},
+		{"gif", "image/gif"},
+		{"bmp", "image/bmp"},
+		{"tiff", "image/tiff"},
+		{"tif", "image/tiff"},
+	};
+
+	static const std::string defaulContentType = "application/octet-stream";
+
+	int extPos = fileName.find_last_of('.');
+
+	if (extPos == -1) {
+		return defaulContentType;
+	}
+
+	std::string extension = fileName.substr(extPos + 1);
+	auto item = contentTypes.find(extension);
+
+	if (item != contentTypes.end()) {
+		return item->second;
+	} else {
+		return defaulContentType;
+	}
+}
+
 void setServerRoutes(httplib::Server &server, Index &index, const std::string &dataset) {
 	server.Get("/health", [](const httplib::Request&, httplib::Response &res) {
 		res.set_content("I'm OK", "text/plain");
@@ -124,7 +153,7 @@ void setServerRoutes(httplib::Server &server, Index &index, const std::string &d
 		file.seekg(0, std::ios::beg);
 		file.read(image, size);
 
-		res.set_content(image, size, "image/jpeg");
+		res.set_content(image, size, pickContentType(searchResult.name).c_str());
 		res.set_header("Name", searchResult.name.c_str());
 
 		file.close();
