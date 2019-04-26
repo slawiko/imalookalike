@@ -371,7 +371,7 @@ void Index::save(std::string filename) {
 
 	NodeList nodes = collectNodes();
 
-	file << maxId << "," << entryPoint->id << "," << descriptorSize << ","
+	file << nodes.size() << "," << maxId << "," << entryPoint->id << "," << descriptorSize << ","
 		<< M << "," << M0 << "," << efConstruction << "," << efSearch << "," << mL << "," << keepPrunedConnections << "\n";
 
 	for (const NodePtr &node : nodes) {
@@ -412,6 +412,9 @@ void Index::load(std::string filename, Metric *metric) {
 	lineStream.str(line);
 
 	std::getline(lineStream, item, ',');
+	int nodesCount = std::stoi(item);
+
+	std::getline(lineStream, item, ',');
 	maxId = std::stoi(item);
 
 	std::getline(lineStream, item, ',');
@@ -436,7 +439,7 @@ void Index::load(std::string filename, Metric *metric) {
 
 	NodeList nodes(maxId + 1);
 
-	for (int i = 0; i < nodes.size(); ++i) {
+	for (int i = 0; i < nodesCount; ++i) {
 		getline(file, line);
 		lineStream.str(line);
 		lineStream.clear();
