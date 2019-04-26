@@ -67,14 +67,15 @@ Index::Index(int descriptorSize, Settings settings) {
 	this->metric = settings.metric;
 	this->M = settings.M;
 	this->M0 = settings.M0;
-	this->efConstruction = std::max(settings.efConstruction, M);
+	this->efConstruction = std::max(settings.efConstruction, std::max(M, M0));
 	this->efSearch = settings.efSearch;
 	this->mL = settings.mL;
 	this->keepPrunedConnections = settings.keepPrunedConnections;
 };
 
-void Index::copy(Index &&other) {
-	entryPoint = other.entryPoint;
+void Index::move(Index &&other) {
+	entryPoint = std::move(other.entryPoint);
+	maxId = other.maxId;
 	descriptorSize = other.descriptorSize;
 	metric = other.metric;
 	M = other.M;
@@ -85,11 +86,11 @@ void Index::copy(Index &&other) {
 }
 
 Index::Index(Index &&other) {
-	copy(std::move(other));
+	move(std::move(other));
 }
 
 Index& Index::operator=(Index &&other) {
-	copy(std::move(other));
+	move(std::move(other));
 
 	return *this;
 }
@@ -328,8 +329,10 @@ std::vector<SearchResult> Index::search(std::vector<double> descriptor, int k) {
 	return result;
 }
 
-void Index::save(std::string filename) {
-	std::ofstream file(filename);
+Index::NodeList Index::collectNodes() {
+	if (!entryPoint) {
+		return NodeList();
+	}
 
 	NodeList nodes;
 	nodes.reserve(maxId + 1);
@@ -357,7 +360,15 @@ void Index::save(std::string filename) {
 		}
 	}
 
-	file << nodes.size() << "," << entryPoint->id << "," << maxId << "," << descriptorSize << ","
+	return nodes;
+}
+
+void Index::save(std::string filename) {
+	std::ofstream file(filename);
+
+	NodeList nodes = collectNodes();
+
+	file << maxId << "," << entryPoint->id << "," << descriptorSize << ","
 		<< M << "," << M0 << "," << efConstruction << "," << efSearch << "," << mL << "," << keepPrunedConnections << "\n";
 
 	for (const NodePtr &node : nodes) {
@@ -398,13 +409,10 @@ void Index::load(std::string filename, Metric *metric) {
 	lineStream.str(line);
 
 	std::getline(lineStream, item, ',');
-	int size = std::stoi(item);
+	maxId = std::stoi(item);
 
 	std::getline(lineStream, item, ',');
 	int entryPointId = std::stoi(item);
-
-	std::getline(lineStream, item, ',');
-	maxId = std::stoi(item);
 
 	std::getline(lineStream, item, ',');
 	descriptorSize = std::stoi(item);
@@ -423,9 +431,9 @@ void Index::load(std::string filename, Metric *metric) {
 
 	this->metric = metric;
 
-	NodeList nodes(size);
+	NodeList nodes(maxId + 1);
 
-	for (int i = 0; i < size; ++i) {
+	for (int i = 0; i < nodes.size(); ++i) {
 		getline(file, line);
 		lineStream.str(line);
 		lineStream.clear();
@@ -468,6 +476,16 @@ void Index::load(std::string filename, Metric *metric) {
 		for (int i = 0; i < neighboursCount; ++i) {
 			std::getline(lineStream, item, ',');
 			nodes[nodeId]->layers[layer].push_back(nodes[std::stoi(item)]);
+		}
+	}
+}
+
+Index::~Index() {
+	NodeList nodes = collectNodes();
+
+	for (const NodePtr &node : nodes) {
+		for (NodeList &layer : node->layers) {
+			layer.clear();
 		}
 	}
 }

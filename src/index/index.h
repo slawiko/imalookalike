@@ -68,7 +68,7 @@ class Index {
 		return dist(gen);
 	}
 
-	void copy(Index &&other);
+	void move(Index &&other);
 
 	double distance(const NodePtr &a, const NodePtr &b);
 
@@ -88,6 +88,8 @@ class Index {
 
 	void load(std::string filename, Metric *metric = new Euclidean());
 
+	NodeList collectNodes();
+
 public:
 	Index(int descriptorSize, Settings settings = Settings());
 
@@ -100,6 +102,8 @@ public:
 
 	Index(Index &&other);
 	Index& operator=(Index &&other);
+
+	~Index();
 
 	int getDescriptorSize() {
 		return descriptorSize;
