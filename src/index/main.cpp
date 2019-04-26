@@ -5,6 +5,7 @@
 #include <string>
 #include <exception>
 #include <stdexcept>
+#include <unordered_map>
 
 #include "index.h"
 #include "thread_pool.h"
