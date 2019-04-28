@@ -6,7 +6,7 @@ import { ImageViewer } from '../image-viewer/ImageViewer';
 
 interface Props {
   // onResponseReceived: (file: Blob) => void;
-  onResponseReceived: (file: any) => void;
+  onResponseReceived: (file: Blob) => void;
   onError: (data: any) => void;
 }
 
@@ -119,8 +119,8 @@ export class FileUpload extends React.Component<Props, State> {
           }
         });
 
-        const json = await result.text();
-        this.props.onResponseReceived(json);
+        const blob = await result.blob();
+        this.props.onResponseReceived(blob);
       } catch (e) {
         this.props.onError(e);
       }
