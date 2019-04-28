@@ -6,18 +6,18 @@ Index for searching images by their descriptors. Implements [HNSW](https://arxiv
 Application uses [cpp-httplib](https://github.com/yhirose/cpp-httplib) as dependency.
 
 ### Building
-Docker:
+#### Docker:
 ```
 docker build -t index .
 docker run -p <port>:8000 index
 ```
 
-Linux/MacOS (GCC):
+#### Linux/MacOS (GCC):
 ```
 g++ --std=c++11 -pthread -O2 -x c++ -I<path to httplib> main.cpp index.cpp thread_pool.cpp arguments.cpp
 ```
 
-Windows (VS compiler):
+#### Windows (VS compiler):
 ```
 cl /TP /MT /EHsc /O2 /GL /I<path to httplib> main.cpp index.cpp thread_pool.cpp arguments.cpp
 ```
@@ -78,8 +78,16 @@ Default value: 8000
 `GET /health`  
 Healthcheck  
 Response: "I'm okay"  
+Response content type: text/plain  
+  
+`GET /descriptor-size`  
+Get descriptor size of current index  
+Response: Descriptor size  
+Response content type: text/plain  
   
 `POST /neighbour`  
 Find nearest image by provided descriptor  
 Request: Image descriptor - comma-separated list of real numbers (example: 0.1,1.73,13.69)  
+Request content type: text/plain  
 Response: Found image (binary)  
+Response content type: image/<jpeg|png|gif|bmp|tiff>; application/octet-stream in case of unknown extension  
