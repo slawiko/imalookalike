@@ -17,8 +17,18 @@ std::vector<double> parseDescriptor(std::istream &in, int descriptorSize) {
 	descriptor.reserve(descriptorSize);
 	std::string item;
 
-	while (getline(in, item, ',')) {
-		descriptor.push_back(std::stod(item));
+	try {
+		while (getline(in, item, ',')) {
+			descriptor.push_back(std::stod(item));
+		}
+	} catch (const std::invalid_argument &e) {
+		throw std::runtime_error("Invalid value");
+	} catch (const std::out_of_range &e) {
+		throw std::runtime_error("Value is out of range");
+	}
+
+	if (descriptor.size() != descriptorSize) {
+		throw std::runtime_error("Incorrect descriptor size");
 	}
 
 	return descriptor;
@@ -122,11 +132,13 @@ void setServerRoutes(httplib::Server &server, Index &index, const std::string &d
 
 	server.Post("/neighbour", [&index, &dataset](const httplib::Request &req, httplib::Response &res) {
 		std::istringstream bodyStream(req.body);
-		std::vector<double> descriptor = parseDescriptor(bodyStream, index.getDescriptorSize());
+		std::vector<double> descriptor;
 
-		if (descriptor.size() != index.getDescriptorSize()) {
+		try {
+			descriptor = parseDescriptor(bodyStream, index.getDescriptorSize());
+		} catch (const std::exception &e) {
 			res.status = 400;
-			res.set_content("Incorrect descriptor size", "text/plain");
+			res.set_content(e.what(), "text/plain");
 			return;
 		}
 
