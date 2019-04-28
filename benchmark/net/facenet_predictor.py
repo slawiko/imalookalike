@@ -65,11 +65,10 @@ def predict_embeddings(imgs):
         cropped = get_cropped_image(img)
         if cropped is None:
             print("not detected")
-            prewhiteneds.append(img)
-        else:
-            resized = cv2.resize(cropped, (input_image_size, input_image_size), interpolation=cv2.INTER_CUBIC)
-            prewhitened = facenet.prewhiten(resized)
-            prewhiteneds.append(prewhitened)
+            cropped = img
+        resized = cv2.resize(cropped, (input_image_size, input_image_size), interpolation=cv2.INTER_CUBIC)
+        prewhitened = facenet.prewhiten(resized)
+        prewhiteneds.append(prewhitened)
     reshaped = np.array(prewhiteneds).reshape((-1, input_image_size, input_image_size, 3))
     feed_dict = {images_placeholder: reshaped, phase_train_placeholder: False}
     embedding = sess.run(embeddings, feed_dict=feed_dict)
