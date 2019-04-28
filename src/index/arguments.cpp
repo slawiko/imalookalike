@@ -5,6 +5,7 @@
 #include <vector>
 #include <exception>
 #include <stdexcept>
+#include <iostream>
 
 #include "arguments.h"
 
@@ -17,7 +18,7 @@ const std::vector<Arguments::Param> Arguments::params = {
 	Param("--M", "max count of neighbours for nodes on non-zero layers",
 		[](const Arguments &args, const std::string value) {args.indexSettings.M = args.positive(std::stoi(value));}),
 
-	Param("--M0", "max count of neighbours for nodes on zero layers",
+	Param("--M0", "max count of neighbours for nodes on zero layer",
 		[](const Arguments &args, const std::string value) {args.indexSettings.M0 = args.positive(std::stoi(value));}),
 
 	Param("--efConstruction", "-eC", "count of tracked nearest nodes during index creation",
@@ -29,8 +30,8 @@ const std::vector<Arguments::Param> Arguments::params = {
 	Param("--mL", "prefactor for random level generation",
 		[](const Arguments &args, const std::string &value) {args.indexSettings.mL = args.positiveOrZero(std::stod(value));}),
 
-	Param("--keepPrunedConnections", "-k", "if to keep constant number of nodes neighbours",
-		[](const Arguments &args, const std::string&) {args.indexSettings.keepPrunedConnections = true;}),
+	Param("--keepPrunedConnections", "-k", "keep constant number of nodes neighbours",
+		[](const Arguments &args, const std::string &value) {args.indexSettings.keepPrunedConnections = std::stoi(value);}),
 
 	Param("--data", "-dt", "path to file with objects for index",
 		[](const Arguments &args, const std::string &value) {args.dataPath = args.notEmpty(value);}),
@@ -119,6 +120,8 @@ Arguments::Arguments(int argc, char **argv) {
 }
 
 void Arguments::printHelp() const {
+	std::cout << "<arg>=<value>" << std::endl;
+
 	for (const Param &param : params) {
 		param.print();
 	}
