@@ -2,12 +2,16 @@ version: "3.7"
 services:
 
   app:
-    image: slawiko/imalookalike-app:latest
+    build:
+      context: ./src/app
+      dockerfile: Dockerfile
     ports:
       - "80:8000"
 
   index:
-    image: slawiko/imalookalike-index:latest
+    build:
+      context: ./src/index
+      dockerfile: Dockerfile
     volumes:
       - type: bind
         source: ${PATH_TO_DATASET}
