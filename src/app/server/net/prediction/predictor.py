@@ -42,8 +42,10 @@ def get_embedding(image):
         raise TypeError('Argument must have type str or bytes')
 
     faces = preprocess.get_faces(img)
-    if len(faces) != 1:
-        raise RuntimeError
+    if len(faces) == 0:
+        raise RuntimeError("No faces detected")
+    elif len(faces) > 1:
+        raise RuntimeError("Multiple faces detected")
     face = faces[0]
     aligned_image = preprocess.preprocess(img, face, landmarks_model)
 
