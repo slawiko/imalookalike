@@ -32,22 +32,22 @@ const std::vector<Arguments::Param> Arguments::params = {
 	Param("--keepPrunedConnections", "-k", "if to keep constant number of nodes neighbours",
 		[](const Arguments &args, const std::string&) {args.indexSettings.keepPrunedConnections = true;}),
 
-	Param("--data", "path to file with objects for index",
+	Param("--data", "-dt", "path to file with objects for index",
 		[](const Arguments &args, const std::string &value) {args.dataPath = args.notEmpty(value);}),
 
-	Param("--dump", "path to file with index dump",
+	Param("--dump", "-dm", "path to file with index dump",
 		[](const Arguments &args, const std::string &value) {args.dumpPath = args.notEmpty(value);}),
 
-	Param("--dataset", "path to dataset directory",
+	Param("--dataset", "-ds", "path to dataset directory",
 		[](const Arguments &args, const std::string &value) {args.dataset = args.notEmpty(value); }),
 
-	Param("--base", "count of object, that will be inserted sequentially",
+	Param("--base", "-b", "count of object, that will be inserted sequentially",
 		[](const Arguments &args, const std::string &value) {args.baseSize = args.positiveOrZero(std::stoi(value));}),
 
-	Param("--address", "address, that web-server is hosted on",
+	Param("--address", "-a", "address, that web-server is hosted on",
 		[](const Arguments &args, const std::string &value) {args.address = args.notEmpty(value);}),
 
-	Param("--port", "port, that web-server listen to",
+	Param("--port", "-p", "port, that web-server listen to",
 		[](const Arguments &args, const std::string &value) {args.port = args.positiveOrZero(std::stoi(value));}),
 };
 

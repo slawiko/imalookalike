@@ -26,33 +26,7 @@ WORKDIR $DIR
 
 COPY --chown=indexuser:indexgroup ./ ./
 
-RUN \
-  g++ --std=c++11 -o index -pthread -O2 -x c++ -I${HTTPLIB_PATH}/cpp-httplib-master main.cpp index.cpp thread_pool.cpp arguments.cpp && \
-  ls -la
+RUN g++ --std=c++11 -o index -pthread -O2 -x c++ -I${HTTPLIB_PATH}/cpp-httplib-master main.cpp index.cpp thread_pool.cpp arguments.cpp
 
 EXPOSE 8000
-
 ENTRYPOINT ["./index", "--address=0.0.0.0", "--port=8000"]
-
-# TODO:
-#FROM alpine:3.9
-#
-#ENV \
-#  INDEXUSER=indexuser \
-#  INDEXGROUP=indexgroup \
-#  DIR=/index
-#
-#RUN \
-#  addgroup -S ${INDEXGROUP} && \
-#  adduser -S ${INDEXUSER} -G ${INDEXGROUP} && \
-#  mkdir ${DIR} && \
-#  chown ${INDEXUSER}:${INDEXGROUP} ${DIR}
-#USER ${INDEXUSER}
-#
-#WORKDIR ${DIR}
-#
-#COPY --from=build /index/index .
-#
-#EXPOSE 8000
-#
-#CMD ["./index"]

@@ -1,0 +1,12 @@
+version: "3.7"
+services:
+
+  app:
+    build:
+      context: ./src/app
+      dockerfile: Dockerfile
+
+  index:
+    build:
+      context: ./src/index
+      dockerfile: Dockerfile

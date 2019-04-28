@@ -67,7 +67,7 @@ Index::Index(int descriptorSize, Settings settings) {
 	this->metric = settings.metric;
 	this->M = settings.M;
 	this->M0 = settings.M0;
-	this->efConstruction = std::max(settings.efConstruction, std::max(M, M0));
+	this->efConstruction = settings.efConstruction;
 	this->efSearch = settings.efSearch;
 	this->mL = settings.mL;
 	this->keepPrunedConnections = settings.keepPrunedConnections;
@@ -220,8 +220,10 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 	bool *visited = new bool[candidatesCount];
 	memset(visited, false, candidatesCount);
 
+	int maxSearchCount = std::max(efConstruction, std::max(M, M0)) + 1;
+
 	NodeQueue nearestNodes;
-	nearestNodes.reserve(efConstruction + 1);
+	nearestNodes.reserve(maxSearchCount);
 
 	int maxLayer = entry->maxLayer;
 
@@ -243,7 +245,10 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 	sortedNeighbours.reserve(maxNeighboursCount);
 
 	for (int layer = std::min(nodeLayer, maxLayer); layer >= 0; --layer) {
-		searchAtLayer(newNode, entry, efConstruction, layer, candidates, visited, candidatesCount, nearestNodes);
+		int maxM = (layer == 0) ? M0 : M;
+		int searchCount = std::max(efConstruction, maxM);
+
+		searchAtLayer(newNode, entry, searchCount, layer, candidates, visited, candidatesCount, nearestNodes);
 		entry = nearestNodes.nearest().node;
 
 		selectNeighbours(newNode, M, layer, nearestNodes, discarded, neighbours);
@@ -253,8 +258,6 @@ void Index::insert(std::string name, std::vector<double> descriptor) {
 			newNode->addNeighbour(neighbour, layer);
 			neighbour->addNeighbour(newNode, layer);
 		}
-
-		int maxM = (layer == 0) ? M0 : M;
 
 		for (const NodePtr &neighbour : neighbours) {
 			std::unique_lock<std::mutex> lock(neighbour->layersMutexes[layer]);
@@ -368,7 +371,7 @@ void Index::save(std::string filename) {
 
 	NodeList nodes = collectNodes();
 
-	file << maxId << "," << entryPoint->id << "," << descriptorSize << ","
+	file << nodes.size() << "," << maxId << "," << entryPoint->id << "," << descriptorSize << ","
 		<< M << "," << M0 << "," << efConstruction << "," << efSearch << "," << mL << "," << keepPrunedConnections << "\n";
 
 	for (const NodePtr &node : nodes) {
@@ -409,6 +412,9 @@ void Index::load(std::string filename, Metric *metric) {
 	lineStream.str(line);
 
 	std::getline(lineStream, item, ',');
+	int nodesCount = std::stoi(item);
+
+	std::getline(lineStream, item, ',');
 	maxId = std::stoi(item);
 
 	std::getline(lineStream, item, ',');
@@ -433,7 +439,7 @@ void Index::load(std::string filename, Metric *metric) {
 
 	NodeList nodes(maxId + 1);
 
-	for (int i = 0; i < nodes.size(); ++i) {
+	for (int i = 0; i < nodesCount; ++i) {
 		getline(file, line);
 		lineStream.str(line);
 		lineStream.clear();
