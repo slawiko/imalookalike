@@ -23,6 +23,8 @@ cl /TP /MT /EHsc /O2 /GL /I<path to httplib> main.cpp index.cpp thread_pool.cpp 
 ```
 
 ### Arguments
+\<arg\>=\<value\>  
+  
 `-h` `--help`  
 Print info about arguments  
   
