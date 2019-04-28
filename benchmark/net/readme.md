@@ -11,8 +11,8 @@ Code from facenet [github](https://github.com/davidsandberg/facenet) was used to
 
 | Model name      | Avg Accuracy |
 |-----------------|--------------|
-| Facenet         | 0.85064      |
-| Imlookalike     | 0.9885       |
+| Facenet         | 0.9885       |
+| Imlookalike     | 0.85064      |
 
 **Note:** due to time limit imlookalike model saw only 1/3 of training dataset (CelebA).
 
