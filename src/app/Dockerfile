@@ -43,14 +43,16 @@ USER ${APPUSER}
 
 WORKDIR $SERVER_DIR
 
+ENV FLASK_ENV=production
+
 # docker layers caching usage
 COPY server/requirements.txt ./
 RUN pip install --user -r ./requirements.txt --no-cache-dir
 
-COPY ./server ./server
+COPY --chown=appuser:appgroup ./server ./server
 COPY --from=client /app/build ./client/build
 
 WORKDIR $SERVER_DIR/server
 
 EXPOSE 8000
-ENTRYPOINT [ "/usr/local/bin/python", "./app.py" ]
+ENTRYPOINT ["/usr/local/bin/python", "./app.py"]

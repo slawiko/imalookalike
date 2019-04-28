@@ -1,11 +1,13 @@
 from flask import Flask, render_template, send_from_directory, request, make_response
-import requests
 import imghdr
 
 from errors import InvalidImage
 from net.main import process_image
+from services import index
 
 app = Flask(__name__, static_folder='../client/build', template_folder='../client/build')
+
+print(app.config['ENV'])
 
 
 @app.errorhandler(InvalidImage)
@@ -31,9 +33,8 @@ def upload():
         raise InvalidImage()
     try:
         result = process_image(request.data)
-        data = ','.join([str(e) for e in result[0]])
-        image = requests.post('http://localhost:8001/neighbour', data=data, headers={'content-type': 'text/plain'})
-        response = make_response(image.content)
+        image = index.neighbour(result[0])
+        response = make_response(image)
         response.headers.set('Content-Type', 'image/jpeg')
     except Exception as error:
         print(error)
@@ -42,4 +43,4 @@ def upload():
     return response
 
 
-app.run(host='0.0.0.0', port=8000, debug=None)
+app.run(host='0.0.0.0', port=8000)
