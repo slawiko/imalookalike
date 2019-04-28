@@ -45,10 +45,13 @@ def compare_models(data_dir, image_keys, labels, eval_indices):
     custom_acc = 1 - custom_stat.eval(session=sess)
     facenet_acc = 1 - facenet_stat.eval(session=sess)
 
+    print(custom_acc)
+    print(facenet_acc)
+    print()
     return custom_acc, facenet_acc
 
 
-def run(data_dir, labels_path, partitions_path, custom_model_path, facenet_model_path, num_exp=3):
+def run(data_dir, labels_path, partitions_path, custom_model_path, facenet_model_path, num_exp=100):
     image_keys, labels, eval_indices = get_eval_data(data_dir, labels_path, partitions_path)
     init_models(custom_model_path, facenet_model_path)
 
@@ -64,7 +67,7 @@ def run(data_dir, labels_path, partitions_path, custom_model_path, facenet_model
 
 if __name__ == "__main__":
     if len(sys.argv) < 6:
-        print("You must provide all args")
+        print("You must provide data folder, labels file, partitions file, model folder and facenet model folder paths.")
         sys.exit(1)
     DATA_DIR = sys.argv[1]
     LABELS_FILE = sys.argv[2]
