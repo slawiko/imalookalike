@@ -3,15 +3,14 @@ import { FileUpload } from '../file-upload/FileUpload';
 import './Main.css';
 
 interface State {
-  // lookalikeFile: Blob | null;
-  lookalikeFile: any;
+  lookalikeFile: string | undefined;
 }
 
 export class Main extends React.Component<{}, State> {
   constructor(props: {}) {
     super(props);
     this.state = {
-      lookalikeFile: null,
+      lookalikeFile: undefined,
     };
     this.showLookalike = this.showLookalike.bind(this);
   }
@@ -26,17 +25,21 @@ export class Main extends React.Component<{}, State> {
         </div>
         >
         <div className="pane right">
-          <span>{this.state.lookalikeFile}</span>
+          <img src={this.state.lookalikeFile}/>
         </div>
       </div>
     );
   }
 
   private showLookalike(lookalikeFile: Blob) {
-    this.setState({ lookalikeFile: lookalikeFile.toString() });
+    const reader = new FileReader();
+    reader.readAsDataURL(lookalikeFile);
+    reader.addEventListener('loadend', result => {
+      this.setState({ lookalikeFile: reader.result as string });
+    });
   }
 
   private showError(data: any) {
-    this.setState({ lookalikeFile: `error: ${data}` });
+    // pass
   }
 }
