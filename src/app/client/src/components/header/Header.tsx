@@ -10,7 +10,10 @@ export class Header extends React.Component {
     items[host] = '/';
     return (
       <header className="header">
-        Header
+        <span className="logo">imalookalike</span>
+        <span className="about">
+          <a href="https://github.com/slawiko/imalookalike/blob/master/README.md">About</a>
+        </span>
       </header>
     );
   }

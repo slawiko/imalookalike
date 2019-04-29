@@ -1,4 +1,6 @@
-import * as React from "react";
+import * as React from 'react';
+
+import './Spinner.css';
 
 export class Spinner extends React.Component<{}, {}> {
   constructor(props: {}) {
@@ -7,8 +9,16 @@ export class Spinner extends React.Component<{}, {}> {
 
   render() {
     return (
-      <div className="spinner-container">
-        <span>Imagine it spins</span>
+      <div className="lds-grid">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
       </div>
     );
   }

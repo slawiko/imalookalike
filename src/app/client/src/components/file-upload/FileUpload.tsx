@@ -5,7 +5,7 @@ import { stopEvent } from '../../utils/events';
 import { ImageViewer } from '../image-viewer/ImageViewer';
 
 interface Props {
-  // onResponseReceived: (file: Blob) => void;
+  onRequestStart: () => void;
   onResponseReceived: (file: Blob) => void;
   onError: (data: any) => void;
 }
@@ -32,21 +32,19 @@ export class FileUpload extends React.Component<Props, State> {
 
   render() {
     return (
-      <div onDrop={this.handleDrop}
-           onDragOver={this.dragIn}
-           onDragEnter={this.dragIn}
-           onDragLeave={this.dragOut}>
-        {(this.state.fileUrl && this.isViewMode())
-          ? <ImageViewer fileUrl={this.state.fileUrl} alt="you"/>
-          : <form className={`file-chooser ${this.state.dragZoneClass}`}>
-            <input id="file-chooser" type="file" onChange={this.handleChoose}/>
-            <label htmlFor="file-chooser">
-              <strong>Choose your photo</strong>
-              <span> or drag it here.</span>
-            </label>
-          </form>
-        }
-      </div>
+      (this.state.fileUrl && this.isViewMode())
+        ? <ImageViewer fileUrl={this.state.fileUrl} alt="you"/>
+        : <form onDrop={this.handleDrop}
+                onDragOver={this.dragIn}
+                onDragEnter={this.dragIn}
+                onDragLeave={this.dragOut}
+                className={`file-chooser ${this.state.dragZoneClass}`}>
+          <input id="file-chooser" type="file" onChange={this.handleChoose}/>
+          <label htmlFor="file-chooser">
+            <strong>Choose your photo</strong>
+            <span> or drag it here.</span>
+          </label>
+        </form>
     );
   }
 
@@ -89,7 +87,7 @@ export class FileUpload extends React.Component<Props, State> {
 
   private handleFile(file: Blob) {
     this.showFile(file);
-    this.uploadFile(file)
+    this.uploadFile(file);
   }
 
   private showFile(file: Blob) {
@@ -106,6 +104,7 @@ export class FileUpload extends React.Component<Props, State> {
   }
 
   private uploadFile(file: Blob) {
+    this.props.onRequestStart();
     const reader = new FileReader();
 
     reader.readAsArrayBuffer(file);
@@ -120,8 +119,12 @@ export class FileUpload extends React.Component<Props, State> {
           }
         });
 
-        const blob = await result.blob();
-        this.props.onResponseReceived(blob);
+        if (!result.ok) {
+          this.props.onError(await result.text());
+        } else {
+          const blob = await result.blob();
+          this.props.onResponseReceived(blob);
+        }
       } catch (e) {
         this.props.onError(e);
       }

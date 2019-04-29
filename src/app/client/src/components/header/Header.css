@@ -2,3 +2,24 @@
   background-color: #222;
   color: white;
 }
+
+.header span {
+  display: inline-block;
+  margin-left: 15px;
+  padding: 15px 0;
+}
+
+.header span.about {
+  float: right;
+  margin-right: 15px;
+}
+
+.header a {
+  text-decoration: none;
+  color: white;
+}
+
+.header a:hover {
+  color: darkgrey;
+  transition : 100ms ease-out;
+}

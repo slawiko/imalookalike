@@ -1,11 +1,17 @@
 .main {
   text-align: center;
+  max-height: 100%;
+  max-width: 100%;
+}
+
+.error {
+  color: red;
 }
 
 .pane {
-  max-width: 500px;
-  width: 500px;
-  max-height: 700px;
+  max-width: 600px;
+  width: 600px;
+  max-height: 400px;
   margin: 0 auto;
   display: inline-block;
 }
