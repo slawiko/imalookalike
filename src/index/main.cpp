@@ -21,9 +21,9 @@ std::vector<double> parseDescriptor(std::istream &in, int descriptorSize) {
 		while (getline(in, item, ',')) {
 			descriptor.push_back(std::stod(item));
 		}
-	} catch (const std::invalid_argument &e) {
+	} catch (const std::invalid_argument&) {
 		throw std::runtime_error("Invalid value");
-	} catch (const std::out_of_range &e) {
+	} catch (const std::out_of_range&) {
 		throw std::runtime_error("Value is out of range");
 	}
 
