@@ -1,5 +1,7 @@
 # Index
 
+![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/slawiko/imalookalike-index.svg?style=for-the-badge)
+
 Index for searching images by their descriptors. Implements [HNSW](https://arxiv.org/abs/1603.09320) algorithm.
 
 ### Dependencies

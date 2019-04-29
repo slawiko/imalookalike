@@ -12,6 +12,7 @@ services:
 
   index:
     image: slawiko/imalookalike-index:latest
+    user: root # FIXME
     volumes:
       - type: bind
         source: ${PATH_TO_DATASET}
