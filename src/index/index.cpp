@@ -13,9 +13,14 @@
 
 #include "index.h"
 
-std::random_device rd;
-std::mt19937 Index::gen(rd());
+std::mt19937 Index::gen(std::random_device{}());
 std::uniform_real_distribution<double> Index::dist(0.0, 1.0);
+std::mutex Index::randomMutex;
+
+double Index::generateRand() {
+	std::unique_lock<std::mutex> lock(Index::randomMutex);
+	return dist(gen);
+}
 
 double Euclidean::distance(const std::vector<double> &a, const std::vector<double> &b) {
 	double ac = 0.0;

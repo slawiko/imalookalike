@@ -47,6 +47,7 @@ class Index {
 
 	static std::mt19937 gen;
 	static std::uniform_real_distribution<double> dist;
+	static std::mutex randomMutex;
 
 	NodePtr entryPoint = NodePtr(nullptr);
 	int maxId = -1;
@@ -64,9 +65,7 @@ class Index {
 	double mL;
 	bool keepPrunedConnections;
 
-	static double generateRand() {
-		return dist(gen);
-	}
+	static double generateRand();
 
 	void move(Index &&other);
 
