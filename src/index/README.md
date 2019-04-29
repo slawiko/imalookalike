@@ -70,3 +70,6 @@ cl /TP /MT /EHsc /O2 /GL /I<path to httplib> main.cpp index.cpp thread_pool.cpp 
    * Request content type: text/plain  
    * Response: Found image (binary)  
    * Response content type: image/<jpeg|png|gif|bmp|tiff>; application/octet-stream in case of unknown extension  
+
+### Dump
+Index saves dump with processed data from dataset. Index is able to read saved dumps instead of re-processing the data. [Index dump](https://drive.google.com/file/d/1OD84hvLg5WMICFQhqX7K4E5S1rI6xJNN/view) of [CelebA](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) dataset is provided.
