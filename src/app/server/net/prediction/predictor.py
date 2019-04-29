@@ -4,9 +4,9 @@ import numpy as np
 
 import net.preprocessing.preprocess as preprocess
 
-# TODO: must be taken from os.environ probably
+# TODO: must be taken from os.environ
 _MODEL_DIR = './resources/model'
-_LANDMARKS_MODEL_PATH = './resources/landmarks/shape_predictor_68_face_landmarks.dat'
+_LANDMARKS_MODEL_PATH = '/resources/landmarks' # TODO: FIXIT
 
 
 predict_fn = None

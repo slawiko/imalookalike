@@ -1,5 +1,6 @@
 from flask import Flask, render_template, send_from_directory, request, make_response
 import imghdr
+import sys
 
 from errors import InvalidImage
 from net.main import process_image
@@ -37,8 +38,8 @@ def upload():
         response = make_response(image)
         response.headers.set('Content-Type', 'image/jpeg')
     except Exception as error:
-        print(error)
-        return 'Internal server error', 500
+        print(error, file=sys.stderr)
+        return 'Internal server error {}'.format(error), 500
 
     return response
 
