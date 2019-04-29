@@ -1,16 +1,19 @@
 import * as React from 'react';
 import { FileUpload } from '../file-upload/FileUpload';
 import './Main.css';
+import { ImageViewer } from '../image-viewer/ImageViewer';
 
 interface State {
-  lookalikeFile: string | undefined;
+  lookalikeUrl: string | undefined;
+  error: string | undefined;
 }
 
 export class Main extends React.Component<{}, State> {
   constructor(props: {}) {
     super(props);
     this.state = {
-      lookalikeFile: undefined,
+      lookalikeUrl: undefined,
+      error: undefined,
     };
     this.showLookalike = this.showLookalike.bind(this);
   }
@@ -23,9 +26,9 @@ export class Main extends React.Component<{}, State> {
           <FileUpload onResponseReceived={this.showLookalike}
                       onError={this.showError}/>
         </div>
-        >
         <div className="pane right">
-          <img src={this.state.lookalikeFile}/>
+          {this.state.error && <div className="error">{this.state.error}</div>}
+          {this.state.lookalikeUrl && !this.state.error && <ImageViewer fileUrl={this.state.lookalikeUrl} />}
         </div>
       </div>
     );
@@ -35,11 +38,13 @@ export class Main extends React.Component<{}, State> {
     const reader = new FileReader();
     reader.readAsDataURL(lookalikeFile);
     reader.addEventListener('loadend', result => {
-      this.setState({ lookalikeFile: reader.result as string });
+      this.setState({ lookalikeUrl: reader.result as string });
     });
   }
 
-  private showError(data: any) {
-    // pass
+  private showError(data: string) {
+    this.setState({
+      error: data
+    });
   }
 }

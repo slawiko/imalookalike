@@ -100,6 +100,7 @@ export class FileUpload extends React.Component<Props, State> {
     reader.addEventListener('loadend', e => {
       this.setState({
         fileUrl: reader.result as string,
+        mode: 'view',
       });
     });
   }

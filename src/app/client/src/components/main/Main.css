@@ -3,7 +3,9 @@
 }
 
 .pane {
-  max-width: 400px;
+  max-width: 500px;
+  width: 500px;
+  max-height: 700px;
   margin: 0 auto;
   display: inline-block;
 }
