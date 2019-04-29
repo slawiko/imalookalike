@@ -96,9 +96,9 @@ Arguments::Arguments(int argc, char **argv) {
 
 				try {
 					param.handle(*this, value);
-				} catch (const std::invalid_argument &e) {
+				} catch (const std::invalid_argument&) {
 					errorMessage = "invalid value";
-				} catch (const std::out_of_range &e) {
+				} catch (const std::out_of_range&) {
 					errorMessage = "value is out of range";
 				} catch (const std::exception &e) {
 					errorMessage = e.what();
