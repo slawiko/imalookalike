@@ -29,4 +29,4 @@ COPY --chown=indexuser:indexgroup ./ ./
 RUN g++ --std=c++11 -o index -pthread -O2 -x c++ -I${HTTPLIB_PATH}/cpp-httplib-master main.cpp index.cpp thread_pool.cpp arguments.cpp
 
 EXPOSE 8000
-ENTRYPOINT ["./index", "--address=0.0.0.0", "--port=8000", "--dump=/resources/dump/index.dump", "--dataset=/resources/dataset"]
+ENTRYPOINT ["./index", "--address=0.0.0.0", "--port=8000", "--dump=/resources/dump", "--dataset=/resources/dataset"]

@@ -5,6 +5,10 @@ services:
     image: slawiko/imalookalike-app:latest
     ports:
       - "80:8000"
+    volumes:
+      - type: bind
+        source: ${PATH_TO_LANDMARKS}
+        target: /resources/landmarks
 
   index:
     image: slawiko/imalookalike-index:latest
