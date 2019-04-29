@@ -19,11 +19,14 @@ def neighbour(embedding):
     print(url, file=sys.stdout)
 
     try:
-        image = requests.post(url, data=data, headers={'content-type': 'text/plain'})
+        response = requests.post(url, data=data, headers={'content-type': 'text/plain'})
+        if response.status_code != requests.codes.ok:
+            print('Not ok index response status: {}'.format(response.content), file=sys.stderr)
+            return
+        return response.content
     except Exception as e:
         print('Error happened during request to index: {}'.format(e), file=sys.stderr)
-
-    return image.content
+        return
 
 
 def health():

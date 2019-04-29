@@ -35,6 +35,8 @@ def upload():
     try:
         result = process_image(request.data)
         image = index.neighbour(result[0])
+        if not image:
+            return 'Internal server error during communication with index', 500
         response = make_response(image)
         response.headers.set('Content-Type', 'image/jpeg')
     except Exception as error:
