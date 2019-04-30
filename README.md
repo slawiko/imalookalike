@@ -14,9 +14,9 @@ For details look at [Model](https://github.com/slawiko/imalookalike/tree/master/
 To build and run the application locally:
  * Load all needed [resources](./README.md#Resources)
  * Specify paths to resources in environment variables
-   * Linux\MacOS: `PATH_TO_DATASET=<...> PATH_TO_DUMP=<...> PATH_TO_LANDMARKS=<...>`
-   * Windows: `set PATH_TO_DATASET=<...> & set PATH_TO_DUMP=<...> & set PATH_TO_LANDMARKS=<...>`
- * Use docker-compose:
+   * Linux\MacOS: `PATH_TO_DATASET=<path to folder with dataset> PATH_TO_DUMP=<path to dump file> PATH_TO_LANDMARKS=<path to landmarks file>`
+   * Windows: `set PATH_TO_DATASET=<path to folder with dataset> & set PATH_TO_DUMP=<path to dump file> & set PATH_TO_LANDMARKS=<path to landmarks file>`
+ * Install [Docker](https://docs.docker.com/install/) and use docker-compose:
    * Build with prepared images: `docker-compose up`
    * Build from source files: `docker-compose -f docker-compose-dev.yml up`
 
