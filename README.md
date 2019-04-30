@@ -2,7 +2,7 @@
 What celebrity is your lookalike?
 
 ### Deployments
-We have [an instance of the application](http://207.154.236.203) deployed on DigitalOcean.
+We have [an instance of the application](http://imalookalike.me) deployed on DigitalOcean.
 
 ### Resources
 For details look at [Model](https://github.com/slawiko/imalookalike/tree/master/src/app/server/net#imlookalike-model) and [Index](https://github.com/slawiko/imalookalike/tree/master/src/index#index) READMEs.
